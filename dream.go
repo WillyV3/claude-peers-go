@@ -29,7 +29,7 @@ func cliDreamWatch() {
 
 	var events []FleetEvent
 
-	nc, err := subscribeDream(func(event FleetEvent) {
+	nc, err := subscribeFleet("dream-watch", func(event FleetEvent) {
 		events = append(events, event)
 		log.Printf("[dream] %s: %s %s", event.Type, event.Machine, event.Summary)
 

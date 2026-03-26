@@ -1,0 +1,30 @@
+# LLM Watchdog Daemon
+# Monitors sonia's macbook llama-server health
+
+NAME llm-watchdog
+
+INPUT llm_host DEFAULT "100.75.170.108"
+INPUT llm_port DEFAULT "8080"
+INPUT broker_url DEFAULT "http://100.109.211.128:7899"
+
+GOAL watch_llm """Check the LLM server on sonia's macbook and report status.
+
+Steps:
+1. curl http://$llm_host:$llm_port/health — check if server responds
+2. curl http://$llm_host:$llm_port/slots — check slot utilization
+3. curl http://$llm_host:$llm_port/metrics — check token throughput and error rates
+
+Report:
+- Server status (up/down)
+- Active slots vs total
+- Token throughput (prompt t/s, generation t/s)
+- Any anomalies (high memory, stuck slots, zero throughput with active requests)
+
+If the server is DOWN:
+- Try to reach the host via ssh sonia@$llm_host 'echo ok'
+- If host is reachable but server is down, report that llama-server needs restart
+- Publish alert via: curl -X POST $broker_url/send-message with a message to all active peers
+
+Keep output concise. One paragraph summary."""
+
+RUN main USING watch_llm

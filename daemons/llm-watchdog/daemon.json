@@ -1,0 +1,4 @@
+{
+  "schedule": "interval:5m",
+  "description": "Monitor sonia's macbook LLM server health, restart if down, alert on anomalies"
+}

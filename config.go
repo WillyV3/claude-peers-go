@@ -33,8 +33,26 @@ type Config struct {
 	DBPath string `json:"db_path"`
 
 	// StaleTimeout is how many seconds without a heartbeat before
-	// a peer is considered stale and removed. Defaults to 45.
+	// a peer is considered stale and removed. Defaults to 300.
 	StaleTimeout int `json:"stale_timeout"`
+
+	// NatsURL is the NATS server address. Defaults to deriving from BrokerURL.
+	NatsURL string `json:"nats_url"`
+
+	// DaemonDir is the directory containing daemon definitions.
+	// Defaults to ./daemons or ~/claude-peers-daemons.
+	DaemonDir string `json:"daemon_dir"`
+
+	// AgentBin is the path to the vinayprograms/agent binary.
+	// Defaults to searching PATH, then ~/projects/vinay-agent/bin/agent.
+	AgentBin string `json:"agent_bin"`
+
+	// LLMBaseURL is the OpenAI-compatible LLM endpoint for daemons.
+	// Defaults to http://127.0.0.1:4000/v1.
+	LLMBaseURL string `json:"llm_base_url"`
+
+	// LLMModel is the default model for daemon workflows.
+	LLMModel string `json:"llm_model"`
 }
 
 // cfg is the global config, loaded once at startup.
@@ -65,7 +83,23 @@ func loadConfig() Config {
 		c.DBPath = v
 	}
 
-	// Legacy env var: CLAUDE_PEERS_PORT sets port on both listen and broker URL.
+	if v := os.Getenv("CLAUDE_PEERS_NATS"); v != "" {
+		c.NatsURL = v
+	}
+	if v := os.Getenv("CLAUDE_PEERS_DAEMONS"); v != "" {
+		c.DaemonDir = v
+	}
+	if v := os.Getenv("AGENT_BIN"); v != "" {
+		c.AgentBin = v
+	}
+	if v := os.Getenv("CLAUDE_PEERS_LLM_URL"); v != "" {
+		c.LLMBaseURL = v
+	}
+	if v := os.Getenv("CLAUDE_PEERS_LLM_MODEL"); v != "" {
+		c.LLMModel = v
+	}
+
+	// Legacy env var
 	if v := os.Getenv("CLAUDE_PEERS_PORT"); v != "" {
 		c.Listen = "127.0.0.1:" + v
 		if c.BrokerURL == defaultConfig().BrokerURL {
@@ -85,6 +119,11 @@ func defaultConfig() Config {
 		MachineName:  hostname,
 		DBPath:       defaultDBPath(),
 		StaleTimeout: 300,
+		NatsURL:      "",
+		DaemonDir:    "",
+		AgentBin:     "",
+		LLMBaseURL:   "http://127.0.0.1:4000/v1",
+		LLMModel:     "vertex_ai/claude-sonnet-4-6",
 	}
 }
 

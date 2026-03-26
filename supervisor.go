@@ -154,7 +154,7 @@ func (s *Supervisor) run(ctx context.Context) {
 }
 
 func (s *Supervisor) watchNATS(ctx context.Context, d DaemonConfig, subject string) {
-	nc, err := subscribeDream(func(event FleetEvent) {
+	nc, err := subscribeFleet("supervisor-"+d.Name, func(event FleetEvent) {
 		if !matchSubject(subject, event.Type) {
 			return
 		}
@@ -259,37 +259,33 @@ func (s *Supervisor) invoke(d DaemonConfig, trigger string) {
 }
 
 func publishDaemonResult(name string, run DaemonRun) {
-	data, _ := json.Marshal(run)
-	cliFetch("/events", nil, nil) // Just to keep broker aware
-	_ = data                      // TODO: publish to NATS fleet.daemon.<name>.result
+	pub := newNATSPublisher()
+	if pub == nil {
+		return
+	}
+	defer pub.close()
+
+	summary := run.Output
+	if len(summary) > 500 {
+		summary = summary[len(summary)-500:]
+	}
+
+	pub.publish("fleet.daemon."+name, FleetEvent{
+		Type:    "daemon_" + run.Status,
+		PeerID:  name,
+		Machine: cfg.MachineName,
+		Summary: summary,
+		Data:    fmt.Sprintf("trigger=%s duration=%s", run.Trigger, run.Duration),
+	})
 }
 
 func cliSupervisor(ctx context.Context) {
-	daemonDir := filepath.Join(findRepoRoot(), "daemons")
-	if _, err := os.Stat(daemonDir); err != nil {
-		// Try relative to binary
-		exe, _ := os.Executable()
-		daemonDir = filepath.Join(filepath.Dir(exe), "daemons")
-	}
-	if envDir := os.Getenv("CLAUDE_PEERS_DAEMONS"); envDir != "" {
-		daemonDir = envDir
-	}
-
-	agentBin := os.Getenv("AGENT_BIN")
-	if agentBin == "" {
-		agentBin, _ = exec.LookPath("agent")
-	}
-	if agentBin == "" {
-		home, _ := os.UserHomeDir()
-		agentBin = filepath.Join(home, "projects", "vinay-agent", "bin", "agent")
-	}
-
-	if _, err := os.Stat(agentBin); err != nil {
-		log.Fatalf("[supervisor] agent binary not found at %s", agentBin)
-	}
+	daemonDir := resolveDaemonDir()
+	agentBin := resolveAgentBin()
 
 	log.Printf("[supervisor] daemon dir: %s", daemonDir)
 	log.Printf("[supervisor] agent bin: %s", agentBin)
+	log.Printf("[supervisor] llm: %s (%s)", cfg.LLMBaseURL, cfg.LLMModel)
 
 	s, err := newSupervisor(daemonDir, agentBin)
 	if err != nil {
@@ -297,6 +293,54 @@ func cliSupervisor(ctx context.Context) {
 	}
 
 	s.run(ctx)
+}
+
+func resolveDaemonDir() string {
+	if cfg.DaemonDir != "" {
+		return cfg.DaemonDir
+	}
+	// Check common locations in order
+	candidates := []string{
+		filepath.Join(findRepoRoot(), "daemons"),
+	}
+	home, _ := os.UserHomeDir()
+	candidates = append(candidates,
+		filepath.Join(home, "claude-peers-daemons"),
+		filepath.Join(home, ".config", "claude-peers", "daemons"),
+	)
+	exe, _ := os.Executable()
+	if exe != "" {
+		candidates = append(candidates, filepath.Join(filepath.Dir(exe), "daemons"))
+	}
+	for _, d := range candidates {
+		if fi, err := os.Stat(d); err == nil && fi.IsDir() {
+			return d
+		}
+	}
+	log.Fatal("[supervisor] no daemon directory found. Set daemon_dir in config or CLAUDE_PEERS_DAEMONS env var.")
+	return ""
+}
+
+func resolveAgentBin() string {
+	if cfg.AgentBin != "" {
+		if _, err := os.Stat(cfg.AgentBin); err == nil {
+			return cfg.AgentBin
+		}
+	}
+	if bin, err := exec.LookPath("agent"); err == nil {
+		return bin
+	}
+	home, _ := os.UserHomeDir()
+	fallback := filepath.Join(home, "projects", "vinay-agent", "bin", "agent")
+	if _, err := os.Stat(fallback); err == nil {
+		return fallback
+	}
+	localBin := filepath.Join(home, ".local", "bin", "agent")
+	if _, err := os.Stat(localBin); err == nil {
+		return localBin
+	}
+	log.Fatal("[supervisor] agent binary not found. Install vinayprograms/agent or set agent_bin in config.")
+	return ""
 }
 
 func findRepoRoot() string {

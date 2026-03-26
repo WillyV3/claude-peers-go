@@ -1,0 +1,33 @@
+# PR Helper Daemon
+# Keeps pull requests mergeable across fleet repos
+
+NAME pr-helper
+
+INPUT github_user DEFAULT "WillyV3"
+INPUT repos DEFAULT "claude-peers-go,v3Consult"
+
+AGENT reviewer """You are a PR maintenance daemon. Your job is to keep pull requests
+clean and mergeable. You are methodical and conservative.
+
+Rules:
+- Never force push
+- Never merge without human approval
+- Never modify business logic
+- Only fix: merge conflicts, lint errors, stale descriptions, formatting
+- If a PR needs architectural decisions, leave a comment and move on"""
+
+GOAL check_prs """Use bash to check open PRs across repos.
+
+For each repo in $repos:
+1. Run: gh pr list --repo $github_user/<repo> --state open --json number,title,mergeable,statusCheckRollup
+2. For each PR that has merge conflicts or failing checks:
+   a. Clone the repo to /tmp/pr-helper-<repo>
+   b. Check out the PR branch
+   c. If merge conflict: attempt to resolve (abort if non-trivial)
+   d. If lint/format failing: run the project's lint command and fix
+   e. Push fixes if any were made
+3. Output a summary of actions taken
+
+Be concise. Report what you fixed and what needs human attention."""
+
+RUN main USING check_prs

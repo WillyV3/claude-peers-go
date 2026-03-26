@@ -1,0 +1,4 @@
+{
+  "schedule": "event:fleet.>",
+  "description": "Consolidate fleet activity into shared Claude memory on every event"
+}

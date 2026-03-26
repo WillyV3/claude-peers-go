@@ -1,0 +1,28 @@
+# Fleet Memory Daemon
+# Consolidates fleet activity into a briefing for Claude sessions
+
+NAME fleet-memory
+
+INPUT broker_url DEFAULT "http://100.109.211.128:7899"
+
+GOAL consolidate """Build a fleet activity briefing from the broker.
+
+1. Fetch all peers: curl -s -X POST $broker_url/list-peers -H 'Content-Type: application/json' -d '{"scope":"all","cwd":"/"}'
+2. Fetch recent events: curl -s $broker_url/events?limit=50
+3. Synthesize a markdown briefing with:
+   - Which machines are active and what Claude instances are running on each
+   - What each instance is working on (from summaries)
+   - Notable recent events (joins, messages, summary changes)
+   - Any machines that are conspicuously absent
+4. Write the briefing to /tmp/fleet-briefing.md
+
+Format the briefing as a Claude memory file with frontmatter:
+---
+name: fleet-activity
+description: Live fleet activity -- auto-updated by fleet-memory daemon
+type: project
+---
+
+Keep it under 50 lines. Focus on what's actionable."""
+
+RUN main USING consolidate

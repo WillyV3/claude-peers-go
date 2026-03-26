@@ -1,0 +1,7 @@
+[tools]
+allow = ["bash", "read", "write", "web_fetch", "agent"]
+deny = ["rm -rf", "git push --force", "shutdown", "reboot"]
+
+[execution]
+max_runtime_seconds = 300
+max_tool_calls = 50

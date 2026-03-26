@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -20,19 +19,16 @@ const (
 var fleetSubjects = []string{"fleet.>"}
 
 func natsURL() string {
-	if u := os.Getenv("CLAUDE_PEERS_NATS"); u != "" {
-		return u
+	if cfg.NatsURL != "" {
+		return cfg.NatsURL
 	}
 	if cfg.BrokerURL != "" {
-		// Derive NATS URL from broker URL (same host, port 4222)
-		// http://100.109.211.128:7899 -> nats://100.109.211.128:4222
 		host := cfg.BrokerURL
 		for _, prefix := range []string{"http://", "https://"} {
 			if len(host) > len(prefix) && host[:len(prefix)] == prefix {
 				host = host[len(prefix):]
 			}
 		}
-		// Strip port
 		for i, c := range host {
 			if c == ':' {
 				host = host[:i]
@@ -119,9 +115,9 @@ func (p *NATSPublisher) close() {
 	}
 }
 
-// subscribeDream subscribes to the fleet stream and processes events
-// for the dream command (fleet memory consolidation).
-func subscribeDream(handler func(FleetEvent)) (*nats.Conn, error) {
+// subscribeFleet subscribes to the FLEET JetStream with a named durable consumer.
+// Each caller should use a unique consumerName to avoid conflicts.
+func subscribeFleet(consumerName string, handler func(FleetEvent)) (*nats.Conn, error) {
 	nc, err := nats.Connect(natsURL(),
 		nats.Name("claude-peers-dream"),
 		nats.ReconnectWait(2*time.Second),
@@ -144,7 +140,7 @@ func subscribeDream(handler func(FleetEvent)) (*nats.Conn, error) {
 			handler(event)
 		}
 		msg.Ack()
-	}, nats.Durable("dream"), nats.DeliverAll())
+	}, nats.Durable(consumerName), nats.DeliverAll())
 
 	if err != nil {
 		nc.Close()

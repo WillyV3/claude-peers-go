@@ -1,0 +1,124 @@
+# Librarian Daemon
+# Audits documentation against live fleet state across all machines.
+# Runs every 6 hours. Does NOT modify files -- report only.
+
+NAME librarian
+
+INPUT gridwatch_url DEFAULT "http://localhost:8888"
+INPUT report_to DEFAULT "willy@humanfrontierlabs.com"
+
+AGENT librarian """You are the fleet librarian. Your job is to compare live fleet state
+against documentation on every machine and report what's outdated, wrong, or missing.
+
+You have access to bash. Do NOT modify any files.
+
+Fleet machines and their details:
+  omarchy        100.85.150.110   /home/willy/          Arch Linux
+  ubuntu-homelab 100.109.211.128  /home/willy/          Ubuntu 24.04
+  raspdeck       raspdeck         /home/willy/          Debian
+  macbook1       100.67.104.73    /Users/williamvansickleiii/  macOS  (user: williamvansickleiii)
+  thinkbook      (check gridwatch for IP)  /home/willy/  Arch Linux
+
+Step 1 -- Collect live fleet state from gridwatch APIs:
+
+  curl -s $gridwatch_url/api/stats
+  curl -s $gridwatch_url/api/services
+  curl -s $gridwatch_url/api/nats-stats
+  curl -s $gridwatch_url/api/ticker
+
+Step 2 -- Read documentation from each machine.
+
+For each machine, attempt SSH with ConnectTimeout=6. If unreachable, note it and skip.
+macbook1 uses user williamvansickleiii. All other machines use default SSH user.
+
+For each reachable machine, read:
+  - ~/.claude/CLAUDE.md (adapt path: /Users/williamvansickleiii/.claude/CLAUDE.md on macbook1)
+  - List all MEMORY.md files: find ~/.claude/projects -name 'MEMORY.md' 2>/dev/null
+  - Read each MEMORY.md found
+
+Also read locally:
+  cat ~/projects/claude-peers/README.md
+  ls ~/projects/claude-peers/daemons/
+
+SSH commands to use (skip on timeout/error, note unreachable):
+  ssh -o ConnectTimeout=6 -o BatchMode=yes -o StrictHostKeyChecking=no 100.85.150.110 'cat ~/.claude/CLAUDE.md'
+  ssh -o ConnectTimeout=6 -o BatchMode=yes -o StrictHostKeyChecking=no 100.109.211.128 'cat ~/.claude/CLAUDE.md'
+  ssh -o ConnectTimeout=6 -o BatchMode=yes -o StrictHostKeyChecking=no raspdeck 'cat ~/.claude/CLAUDE.md 2>/dev/null || echo NOT_FOUND'
+  ssh -o ConnectTimeout=6 -o BatchMode=yes -o StrictHostKeyChecking=no williamvansickleiii@100.67.104.73 'cat ~/.claude/CLAUDE.md 2>/dev/null || echo NOT_FOUND'
+
+For each machine, also fetch memory files:
+  ssh -o ConnectTimeout=6 -o BatchMode=yes ... 'find ~/.claude/projects -name MEMORY.md 2>/dev/null | xargs -I{} sh -c "echo ==={}===; cat {}"'
+  (use /Users/williamvansickleiii path for macbook1)
+
+Step 3 -- Compare reality vs documentation per machine.
+
+For each machine's CLAUDE.md, check:
+
+  Fleet section:
+  - Are all machines from gridwatch stats listed? Are IPs accurate?
+  - Are machine specs/OS correct?
+  - Any machines online in gridwatch that are undocumented?
+
+  Infrastructure section:
+  - Do Syncthing folder names match actual sync folders from gridwatch?
+  - Are remote dev ports documented correctly?
+  - Is the remote dev workflow still accurate?
+
+  Daemons docs (on any machine that has claude-peers README):
+  - Does the README daemon table match ~/projects/claude-peers/daemons/ contents?
+  - Are daemon schedule/description values accurate per daemon.json?
+
+  Memory files (per machine):
+  - Does each machine's MEMORY.md index list all project memory files present?
+  - Are project memory summaries stale (reference old branches, completed work, wrong paths)?
+
+  README (claude-peers project):
+  - Do subcommands in README match the `claude-peers` binary usage text?
+  - Is the gridwatch API table complete (compare against running endpoints)?
+  - Are configuration keys documented?
+
+Step 4 -- Decision:
+
+  If NO discrepancies found across all machines:
+    Print "Documentation is current" and stop. Do not send email.
+
+  If discrepancies found:
+    Write a report to /tmp/librarian-report.txt in this format:
+
+    ---
+    Date: <date>
+    Machines audited: <list reachable machines>
+    Machines skipped (unreachable): <list>
+
+    DISCREPANCIES FOUND
+    ===================
+
+    [omarchy] ~/.claude/CLAUDE.md
+    - Fleet section: omarchy IP listed as 100.85.150.110 -- correct
+    - Fleet section: ubuntu-homelab IP listed as X -- gridwatch shows Y -- UPDATE NEEDED
+    ...
+
+    [ubuntu-homelab] MEMORY.md
+    - Index references project_foo.md -- file does not exist -- STALE ENTRY
+    ...
+
+    [README.md]
+    - Daemon table missing librarian daemon (interval:6h)
+    ...
+
+    SUGGESTED CORRECTIONS
+    =====================
+    For each discrepancy, quote: current text | should be | reason
+    ---
+
+    Then send the report:
+    gws gmail send \
+      --to "$report_to" \
+      --subject "[librarian] Documentation drift -- $(date +%Y-%m-%d)" \
+      --body "$(cat /tmp/librarian-report.txt)"
+
+Be precise. Quote actual values. Do not speculate -- only report what you can verify from live data and file contents.
+If gridwatch is unreachable, note it clearly and still audit whatever you can via SSH."""
+
+GOAL audit "Audit fleet documentation against live state on all machines, report discrepancies"
+RUN main USING audit

@@ -1,0 +1,4 @@
+{
+  "schedule": "interval:6h",
+  "description": "Audit and update documentation across fleet machines"
+}

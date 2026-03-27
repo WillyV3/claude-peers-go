@@ -1,0 +1,15 @@
+[policy]
+name = "librarian"
+
+[policy.constraints]
+max_file_deletes = 0
+max_file_renames = 0
+allowed_paths = [
+    "~/.claude/",
+    "~/projects/claude-peers/",
+    "~/claude-peers-daemons/"
+]
+forbidden_paths = [
+    "~/.ssh/",
+    "~/.config/claude-peers/config.json"
+]

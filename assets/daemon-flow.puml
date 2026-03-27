@@ -1,27 +1,21 @@
 @startuml daemon-flow
-skinparam backgroundColor #0B0C16
+skinparam backgroundColor white
 skinparam defaultFontName monospaced
-skinparam defaultFontColor #ddf7ff
 skinparam shadowing false
-skinparam ArrowColor #50f7d4
-skinparam SequenceLifeLineBorderColor #1a1c30
-skinparam SequenceParticipantBackgroundColor #0f1019
-skinparam SequenceParticipantBorderColor #1a1c30
-skinparam NoteBackgroundColor #0f1019
-skinparam NoteBorderColor #1a1c30
+skinparam ArrowColor #333333
 
-title <color:#82FB9C>Gridwatch + Daemon Event Flow</color>
+title **Gridwatch + Daemon Event Flow**
 
 actor "Developer" as dev
-participant "<color:#82FB9C>Claude A</color>\n(omarchy)" as ccA
+participant "**Claude A**\n(omarchy)" as ccA
 participant "MCP\nServer" as mcpA
-participant "<color:#50f7d4>Broker</color>\n:7899" as broker
-queue "<color:#7cf8f7>NATS</color>\n:4222" as nats
-participant "<color:#D97757>Supervisor</color>" as super
+participant "Broker**\n:7899" as broker
+queue "NATS**\n:4222" as nats
+participant "Supervisor**" as super
 participant "Agent\n(daemon)" as agent
-participant "<color:#50f7d4>LiteLLM</color>\n:4000" as llm
-participant "<color:#7cf8f7>Gridwatch</color>\n:8888" as gw
-participant "<color:#D97757>Ghostbox</color>\n(willyv4)" as ghost
+participant "LiteLLM**\n:4000" as llm
+participant "Gridwatch**\n:8888" as gw
+participant "Ghostbox**\n(willyv4)" as ghost
 
 == Peer Messaging (Bearer Auth) ==
 

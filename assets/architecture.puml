@@ -1,30 +1,17 @@
 @startuml architecture
-skinparam backgroundColor #0B0C16
+skinparam backgroundColor white
 skinparam defaultFontName monospaced
-skinparam defaultFontColor #ddf7ff
 skinparam shadowing false
 skinparam roundCorner 8
-skinparam ArrowColor #50f7d4
-skinparam RectangleBorderColor #1a1c30
-skinparam RectangleBackgroundColor #0f1019
-skinparam NodeBorderColor #1a1c30
-skinparam NodeBackgroundColor #0f1019
-skinparam DatabaseBorderColor #1a1c30
-skinparam DatabaseBackgroundColor #0f1019
-skinparam QueueBorderColor #1a1c30
-skinparam QueueBackgroundColor #0f1019
-skinparam CloudBorderColor #1a1c30
-skinparam CloudBackgroundColor #0f1019
-skinparam NoteBorderColor #1a1c30
-skinparam NoteBackgroundColor #0f1019
+skinparam ArrowColor #333333
 
-title <color:#82FB9C>claude-peers</color>: Fleet Architecture (2026-03-27)
+title claude-peers: Fleet Architecture (2026-03-27)
 
-node "<color:#82FB9C>ubuntu-homelab</color> (broker machine)" as homelab {
-  [<color:#50f7d4>Broker :7899</color>\nHTTP + Bearer auth] as broker
-  database "<color:#50f7d4>SQLite</color>" as db
-  queue "<color:#7cf8f7>NATS JetStream</color>\n:4222 (token auth)\n:8222 (monitor)" as nats
-  [<color:#D97757>Supervisor</color>\n6 daemons] as super
+node "ubuntu-homelab (broker machine)" as homelab {
+  [Broker :7899\nHTTP + Bearer auth] as broker
+  database "SQLite" as db
+  queue "NATS JetStream\n:4222 (token auth)\n:8222 (monitor)" as nats
+  [Supervisor\n6 daemons] as super
   [Dream Watch] as dream
 
   broker -down-> db : persist
@@ -33,27 +20,27 @@ node "<color:#82FB9C>ubuntu-homelab</color> (broker machine)" as homelab {
   super -down-> nats : daemon results
 }
 
-cloud "<color:#50f7d4>LiteLLM :4000</color>" as litellm {
+cloud "LiteLLM :4000" as litellm {
   [Claude Haiku] as haiku
   [Claude Sonnet] as sonnet
   [Claude Opus] as opus
 }
 
-cloud "<color:#829dd4>Docker</color>" as docker {
+cloud "Docker" as docker {
   [Convex] as convex
   [Kokoro TTS] as kokoro
   [SearXNG] as searx
   [Transiter + Postgres] as transiter
 }
 
-cloud "<color:#a4ffec>Cloudflare</color>" as cf {
+cloud "Cloudflare" as cf {
   [coparency.humanfrontiertests.com] as cf1
   [convex.humanfrontiertests.com] as cf2
 }
 
 super ..> litellm : daemon workflows\n(Haiku default, Sonnet for PR)
 
-node "<color:#82FB9C>omarchy</color>" as om {
+node "omarchy" as om {
   [Claude Code x3] as cc1
   [MCP Server] as mcp1
   [Syncthing] as st1
@@ -61,15 +48,15 @@ node "<color:#82FB9C>omarchy</color>" as om {
   cc1 -down-> mcp1 : stdio
 }
 
-node "<color:#82FB9C>raspdeck</color>" as rp {
-  [<color:#7cf8f7>Gridwatch :8888</color>\n4 pages + ticker] as gw
+node "raspdeck" as rp {
+  [Gridwatch :8888\n4 pages + ticker] as gw
   [Service Monitor] as svcmon
   [Firefox Kiosk] as kiosk
   kiosk -down-> gw : localhost
   svcmon -down-> gw : feeds data
 }
 
-node "<color:#D97757>willyv4</color>" as v4 {
+node "willyv4" as v4 {
   [Ghostbox] as ghost
   [Alarm System\nSpeaker + LED + TTS] as alarm
   [Awareness Engine\n7 sensors] as aware
@@ -90,18 +77,17 @@ svcmon --> homelab : SSH stats\nHTTP health checks
 svcmon --> docker : container status
 svcmon --> cf : tunnel latency
 
-gw --> nats : <color:#50f872>fleet.gridwatch.*</color>\nticker events
-ghost --> nats : subscribe\n<color:#ff6b6b>critical = alarm</color>
-
+gw --> nats : fleet.gridwatch.*\nticker events
+ghost --> nats : subscribe\ncritical = alarm
 st1 <--> homelab : Syncthing sync\n82GB projects
 
 note bottom of super
-  <color:#7cf8f7>FM</color> fleet-memory (event, haiku)
-  <color:#50f872>FS</color> fleet-scout (15m, haiku)
-  <color:#D97757>LW</color> llm-watchdog (15m, haiku)
-  <color:#829dd4>PR</color> pr-helper (30m, sonnet)
-  <color:#a4ffec>SJ</color> sync-janitor (30m, haiku)
-  <color:#a4ffec>LB</color> librarian (6h, haiku)
+  FM fleet-memory (event, haiku)
+  FS fleet-scout (15m, haiku)
+  LW llm-watchdog (15m, haiku)
+  PR pr-helper (30m, sonnet)
+  SJ sync-janitor (30m, haiku)
+  LB librarian (6h, haiku)
 end note
 
 note right of gw

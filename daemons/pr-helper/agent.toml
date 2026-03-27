@@ -1,13 +1,13 @@
 [llm]
 provider = "openai-compat"
-model = "vertex_ai/claude-sonnet-4-6"
+model = "claude-sonnet"
 max_tokens = 4096
 base_url = "http://127.0.0.1:4000/v1"
-api_key_env = "OPENAI_API_KEY"
+api_key_env = "LITELLM_API_KEY"
 
 [small_llm]
 provider = "openai-compat"
-model = "openai/qwen3.5"
+model = "claude-haiku"
 max_tokens = 1024
 base_url = "http://127.0.0.1:4000/v1"
-api_key_env = "OPENAI_API_KEY"
+api_key_env = "LITELLM_API_KEY"

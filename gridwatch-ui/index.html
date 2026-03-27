@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=800, initial-scale=1.0">
+<title>GRIDWATCH</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="fleet.css">
+<link rel="stylesheet" href="services.css">
+<link rel="stylesheet" href="nats.css">
+<link rel="stylesheet" href="agents.css">
+</head>
+<body>
+<div class="shell">
+  <div class="hdr">
+    <div class="logo">GRIDWATCH</div>
+    <div class="hdr-r">
+      <span class="page-label" id="page-label">FLEET</span>
+      <span id="summary"></span>
+      <span class="clock" id="clock"></span>
+    </div>
+  </div>
+  <div class="carousel" id="carousel">
+    <div class="page active" id="page-fleet">
+      <div class="grid" id="grid"></div>
+    </div>
+    <div class="page" id="page-services">
+      <div class="svc-layout" id="svc-layout"></div>
+    </div>
+    <div class="page" id="page-nats">
+      <div class="nats-layout" id="nats-layout"></div>
+    </div>
+    <div class="page" id="page-agents">
+      <div class="dmn-layout" id="dmn-layout"></div>
+    </div>
+  </div>
+  <div class="ticker" id="ticker"></div>
+  <div class="ftr">
+    <div class="ftr-stats" id="ftr-stats"></div>
+    <div class="page-dots" id="page-dots">
+      <span class="dot active" data-page="0"></span>
+      <span class="dot" data-page="1"></span>
+      <span class="dot" data-page="2"></span>
+      <span class="dot" data-page="3"></span>
+    </div>
+  </div>
+</div>
+<script src="core.js"></script>
+<script src="fleet.js"></script>
+<script src="services.js"></script>
+<script src="nats.js"></script>
+<script src="agents.js"></script>
+</body>
+</html>

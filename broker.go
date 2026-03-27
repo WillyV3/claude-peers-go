@@ -85,8 +85,9 @@ func newBroker() (*Broker, error) {
 	}
 
 	// Periodic WAL checkpoint + stale cleanup (skip first run)
+	staleTimeout := time.Duration(cfg.StaleTimeout) * time.Second
 	go func() {
-		time.Sleep(time.Duration(cfg.StaleTimeout) * time.Second)
+		time.Sleep(staleTimeout)
 		for {
 			b.cleanStalePeers()
 			db.Exec("PRAGMA wal_checkpoint(TRUNCATE)")

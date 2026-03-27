@@ -1,0 +1,4 @@
+{
+  "schedule": "interval:30m",
+  "description": "Detect Syncthing conflict files, analyze them, and email a resolution report"
+}

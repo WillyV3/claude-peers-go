@@ -1,0 +1,156 @@
+/* ========== PAGE 3: NATS ========== */
+
+.nats-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 4px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Top-left: Server info */
+.nats-server {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nats-section-hdr {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  font-weight: 700;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 2px;
+  margin-bottom: 2px;
+}
+
+.nats-kv {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+}
+
+.nats-kv .lbl { color: var(--dim); }
+.nats-kv .val { color: var(--text); }
+.nats-kv .val-hl { color: var(--teal); }
+.nats-kv .val-warn { color: var(--warn); }
+.nats-kv .val-err { color: var(--red); }
+
+/* Top-right: Stream info */
+.nats-stream {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.nats-stream-entry {
+  border-bottom: 1px solid rgba(26, 28, 48, 0.5);
+  padding-bottom: 3px;
+  margin-bottom: 3px;
+}
+
+.nats-stream-entry:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+/* Bottom-left: Connections list */
+.nats-conns {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nats-conn-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(26, 28, 48, 0.5);
+}
+
+.nats-conn-row:last-child { border-bottom: none; }
+
+.nats-conn-name {
+  flex: 1;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nats-conn-ip { color: var(--dim); font-size: 8px; }
+.nats-conn-msgs { color: var(--teal); font-size: 8px; }
+
+.nats-conn-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 3px rgba(80, 248, 114, 0.3);
+  flex-shrink: 0;
+}
+
+/* Bottom-right: Consumers list */
+.nats-consumers {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nats-consumer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(26, 28, 48, 0.5);
+}
+
+.nats-consumer-row:last-child { border-bottom: none; }
+
+.nats-consumer-name {
+  flex: 1;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nats-consumer-stream {
+  color: var(--dim);
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.nats-consumer-pending {
+  font-size: 8px;
+  padding: 0 3px;
+  border-radius: 2px;
+}
+
+.nats-consumer-pending.ok { color: var(--green); }
+.nats-consumer-pending.warn { color: var(--warn); background: rgba(164, 255, 236, 0.08); }
+.nats-consumer-pending.bad { color: var(--red); background: rgba(255, 107, 107, 0.08); }

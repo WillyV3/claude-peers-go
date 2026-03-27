@@ -40,6 +40,7 @@ type Supervisor struct {
 	nats       *NATSPublisher
 	mu         sync.Mutex
 	running    map[string]bool
+	lastFail   map[string]time.Time // cooldown: last failure time per daemon
 	history    []DaemonRun
 	maxHistory int
 }
@@ -54,6 +55,7 @@ func newSupervisor(daemonDir, agentBin string) (*Supervisor, error) {
 		agentBin:   agentBin,
 		nats:       newNATSPublisher(),
 		running:    make(map[string]bool),
+		lastFail:   make(map[string]time.Time),
 		maxHistory: 100,
 	}, nil
 }
@@ -179,7 +181,13 @@ func matchSubject(pattern, eventType string) bool {
 }
 
 func (s *Supervisor) runOnInterval(ctx context.Context, d DaemonConfig, interval time.Duration) {
-	// Run once immediately
+	// Stagger startup: wait a random 5-30s before first run to avoid thundering herd.
+	jitter := time.Duration(5+len(d.Name)%25) * time.Second
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(jitter):
+	}
 	s.invoke(d, "startup")
 
 	ticker := time.NewTicker(interval)
@@ -201,6 +209,13 @@ func (s *Supervisor) invoke(d DaemonConfig, trigger string) {
 		log.Printf("[supervisor] %s: already running, skipping", d.Name)
 		return
 	}
+
+	// Cooldown: if daemon failed recently, back off for 5 minutes.
+	if lastFail, ok := s.lastFail[d.Name]; ok && time.Since(lastFail) < 5*time.Minute {
+		s.mu.Unlock()
+		return
+	}
+
 	s.running[d.Name] = true
 	s.mu.Unlock()
 
@@ -230,9 +245,7 @@ func (s *Supervisor) invoke(d DaemonConfig, trigger string) {
 
 	cmd := exec.Command(s.agentBin, args...)
 	cmd.Dir = d.Dir
-	cmd.Env = append(os.Environ(),
-		"OPENAI_API_KEY="+os.Getenv("OPENAI_API_KEY"),
-	)
+	cmd.Env = os.Environ()
 
 	output, err := cmd.CombinedOutput()
 
@@ -241,10 +254,20 @@ func (s *Supervisor) invoke(d DaemonConfig, trigger string) {
 
 	if err != nil {
 		run.Status = "failed"
-		log.Printf("[supervisor] %s: failed after %s: %v", d.Name, run.Duration, err)
+		outSnip := string(output)
+		if len(outSnip) > 200 {
+			outSnip = outSnip[:200]
+		}
+		log.Printf("[supervisor] %s: failed after %s: %v | output: %s", d.Name, run.Duration, err, outSnip)
+		s.mu.Lock()
+		s.lastFail[d.Name] = time.Now()
+		s.mu.Unlock()
 	} else {
 		run.Status = "complete"
 		log.Printf("[supervisor] %s: complete in %s", d.Name, run.Duration)
+		s.mu.Lock()
+		delete(s.lastFail, d.Name)
+		s.mu.Unlock()
 	}
 
 	// Publish result to NATS
@@ -262,10 +285,7 @@ func (s *Supervisor) publishResult(name string, run DaemonRun) {
 	if s.nats == nil {
 		return
 	}
-	summary := run.Output
-	if len(summary) > 500 {
-		summary = summary[len(summary)-500:]
-	}
+	summary := extractAgentOutput(run.Output)
 	s.nats.publish("fleet.daemon."+name, FleetEvent{
 		Type:    "daemon_" + run.Status,
 		PeerID:  name,
@@ -273,6 +293,45 @@ func (s *Supervisor) publishResult(name string, run DaemonRun) {
 		Summary: summary,
 		Data:    fmt.Sprintf("trigger=%s duration=%s", run.Trigger, run.Duration),
 	})
+}
+
+// extractAgentOutput pulls the meaningful output from the agent binary's combined stdout/stderr.
+// The agent wraps results in a JSON envelope: {"Status":"complete","Outputs":{"goal":"actual text"},...}
+func extractAgentOutput(raw string) string {
+	// Find the JSON result block at the end of output.
+	idx := strings.LastIndex(raw, "\n{")
+	if idx < 0 {
+		idx = strings.Index(raw, "{")
+	}
+	if idx >= 0 {
+		jsonPart := raw[idx:]
+		var result struct {
+			Outputs map[string]string `json:"Outputs"`
+			Error   string            `json:"Error"`
+		}
+		if json.Unmarshal([]byte(jsonPart), &result) == nil && len(result.Outputs) > 0 {
+			// Concatenate all goal outputs.
+			var parts []string
+			for _, v := range result.Outputs {
+				if v != "" {
+					parts = append(parts, v)
+				}
+			}
+			if len(parts) > 0 {
+				out := strings.Join(parts, " | ")
+				if len(out) > 800 {
+					out = out[:800]
+				}
+				return out
+			}
+		}
+	}
+
+	// Fallback: take last 500 chars (skip banner, get tail).
+	if len(raw) > 500 {
+		raw = raw[len(raw)-500:]
+	}
+	return raw
 }
 
 func cliSupervisor(ctx context.Context) {

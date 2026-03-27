@@ -1,0 +1,136 @@
+/* === PAGE 4: DAEMON AGENTS === */
+/* Terminal log viewer -- each daemon is a mini tty */
+
+.dmn-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  gap: 2px;
+}
+
+/* Each daemon: header bar + output area */
+.dmn-entry {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Header bar -- colored left accent, all stats inline */
+.dmn-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px 2px 0;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(26, 28, 48, 0.4);
+}
+
+.dmn-accent {
+  width: 3px;
+  align-self: stretch;
+  flex-shrink: 0;
+  border-radius: 1px 0 0 1px;
+}
+
+.dmn-tag {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  border: 1px solid;
+  min-width: 22px;
+  text-align: center;
+}
+
+.dmn-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dmn-dot.complete { background: var(--green); }
+.dmn-dot.failed { background: var(--red); }
+.dmn-dot.idle { background: var(--dim); }
+
+.dmn-name {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.dmn-sched {
+  font-size: 7px;
+  color: var(--dim);
+  letter-spacing: 0.5px;
+}
+
+.dmn-stats {
+  display: flex;
+  gap: 6px;
+  font-size: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.ds { display: inline-flex; gap: 2px; white-space: nowrap; }
+.ds .lbl { color: var(--dim); }
+.ds .val { color: var(--text); }
+.ds .val-ok { color: var(--green); }
+.ds .val-err { color: var(--red); }
+.ds .val-hl { color: var(--teal); }
+
+.dmn-spark {
+  display: flex;
+  gap: 1px;
+  align-items: flex-end;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.dmn-spark-bar {
+  width: 4px;
+  min-height: 2px;
+  border-radius: 1px;
+}
+
+.dmn-spark-bar.ok { background: rgba(80, 248, 114, 0.45); }
+.dmn-spark-bar.err { background: rgba(255, 107, 107, 0.55); }
+.dmn-spark-bar.empty { background: var(--border); height: 2px !important; }
+
+/* Output area -- the hero */
+.dmn-output {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 2px 8px 2px 12px;
+  font-size: 8px;
+  line-height: 1.4;
+  color: var(--dim);
+  background: rgba(11, 12, 22, 0.5);
+}
+
+.dmn-output-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* When output is from a successful run, slightly brighter */
+.dmn-entry.complete .dmn-output { color: rgba(221, 247, 255, 0.5); }
+.dmn-entry.failed .dmn-output { color: rgba(255, 107, 107, 0.5); }
+
+/* Waiting state */
+.dmn-waiting {
+  font-size: 8px;
+  color: var(--dim);
+  opacity: 0.3;
+  padding: 2px 8px 2px 12px;
+  flex: 1;
+}

@@ -1,0 +1,153 @@
+/* === PAGE 2: SERVICES === */
+
+.svc-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+}
+
+.svc-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.svc-col-hdr {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  font-weight: 700;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1px;
+  flex-shrink: 0;
+}
+
+.svc-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  padding: 4px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  flex-shrink: 0;
+  transition: border-color 0.5s, box-shadow 0.5s;
+}
+
+.svc-row.down {
+  border-color: rgba(255, 107, 107, 0.3);
+  box-shadow: inset 0 0 12px rgba(255, 107, 107, 0.04);
+}
+
+.svc-row.degraded {
+  border-color: rgba(164, 255, 236, 0.2);
+}
+
+.svc-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.svc-dot.up { background: var(--green); box-shadow: 0 0 4px rgba(80, 248, 114, 0.3); }
+.svc-dot.down { background: var(--red); animation: svcPulse 1.5s ease-in-out infinite; }
+.svc-dot.degraded { background: var(--warn); }
+.svc-dot.running { background: var(--green); box-shadow: 0 0 3px rgba(80, 248, 114, 0.3); }
+.svc-dot.unhealthy { background: var(--red); animation: svcPulse 1.5s ease-in-out infinite; }
+.svc-dot.idle { background: var(--mint); }
+.svc-dot.syncing { background: var(--cyan); animation: svcPulse 1s ease-in-out infinite; }
+
+@keyframes svcPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.svc-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.svc-port { font-size: 8px; color: var(--dim); flex-shrink: 0; }
+
+.svc-latency {
+  font-size: 8px;
+  color: var(--teal);
+  flex-shrink: 0;
+  min-width: 32px;
+  text-align: right;
+}
+
+.svc-detail { font-size: 8px; color: var(--dim); flex-shrink: 0; }
+
+.svc-badge {
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  padding: 0 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.svc-badge.healthy { background: rgba(80, 248, 114, 0.12); color: var(--green); }
+.svc-badge.none { background: rgba(106, 110, 149, 0.1); color: var(--dim); }
+.svc-badge.unhealthy { background: rgba(255, 107, 107, 0.12); color: var(--red); }
+
+/* Tunnel hostname sub-row */
+.svc-sub {
+  padding-left: 14px;
+  font-size: 8px;
+  color: var(--dim);
+  opacity: 0.6;
+  margin-top: -2px;
+  flex-shrink: 0;
+}
+
+/* Sync folders */
+.sync-folder {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.sync-top {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+}
+
+.sync-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sync-fill {
+  height: 100%;
+  background: var(--mint);
+  border-radius: 2px;
+  transition: width 0.5s;
+}
+
+.sync-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  color: var(--dim);
+}

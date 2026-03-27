@@ -56,6 +56,10 @@ func main() {
 		cliDreamWatch()
 	case "supervisor":
 		cliSupervisor(ctx)
+	case "gridwatch":
+		if err := runGridwatch(ctx); err != nil {
+			log.Fatal(err)
+		}
 	case "kill-broker":
 		cliKillBroker()
 	default:
@@ -78,6 +82,7 @@ Usage:
   claude-peers dream               Snapshot fleet state to Claude memory
   claude-peers dream-watch         Watch fleet via NATS and keep memory fresh
   claude-peers supervisor          Run daemon supervisor (manages agent workflows)
+  claude-peers gridwatch           Start fleet health dashboard (reads gridwatch.json)
   claude-peers kill-broker         Stop the broker daemon
 
 Setup:

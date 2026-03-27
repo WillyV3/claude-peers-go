@@ -1,0 +1,9 @@
+[agent]
+model = "sonnet"
+max_turns = 10
+
+[agent.permissions]
+allow_bash = true
+allow_read = true
+allow_write = false
+allow_edit = false

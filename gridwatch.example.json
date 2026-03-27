@@ -1,0 +1,10 @@
+{
+  "port": 8888,
+  "machines": [
+    {"id": "server1", "host": "10.0.0.1", "os": "ubuntu", "specs": "32GB RAM", "ip": "10.0.0.1"},
+    {"id": "local", "host": "", "os": "arch", "specs": "16GB RAM", "ip": ""},
+    {"id": "macbook", "host": "user@10.0.0.2", "os": "macos", "specs": "M1 Pro", "ip": "10.0.0.2"}
+  ],
+  "llm_url": "",
+  "nats_url": ""
+}

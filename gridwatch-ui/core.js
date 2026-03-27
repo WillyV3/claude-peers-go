@@ -1,7 +1,7 @@
 // ========== GRIDWATCH CORE ==========
 // Carousel, clock, polling, shared utilities.
 
-const PAGE_LABELS = ['FLEET', 'SERVICES', 'NATS', 'AGENTS'];
+const PAGE_LABELS = ['FLEET', 'SERVICES', 'NATS', 'AGENTS', 'PEERS'];
 const ROTATE_MS = 15000;
 
 // --- Utilities ---
@@ -67,10 +67,15 @@ function goToPage(idx) {
   });
 
   setTimeout(() => pages[prev].classList.remove('exit-left'), 450);
+
+  // Start/stop peer graph canvas animation based on page visibility.
+  if (idx === PAGE_LABELS.indexOf('PEERS')) startPeerGraph();
+  else stopPeerGraph();
+
   resetRotateTimer();
 }
 
-function nextPage() { goToPage((currentPage + 1) % 4); }
+function nextPage() { goToPage((currentPage + 1) % PAGE_LABELS.length); }
 
 function resetRotateTimer() {
   if (rotateTimer) clearInterval(rotateTimer);
@@ -214,6 +219,14 @@ async function pollAll() {
   if (llm.status === 'fulfilled') updateLLM(llm.value);
   if (willyv4.status === 'fulfilled' && willyv4.value && willyv4.value.battery) {
     updateWillyv4Tile(willyv4.value);
+  }
+
+  // Page 5: Peers (needs both stats + peers data).
+  if (stats.status === 'fulfilled' || peers.status === 'fulfilled') {
+    updatePeersPage(
+      stats.status === 'fulfilled' ? stats.value.machines : null,
+      peers.status === 'fulfilled' ? peers.value.peers : null
+    );
   }
 
   // Page 2: Services.

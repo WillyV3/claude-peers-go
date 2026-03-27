@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="services.css">
 <link rel="stylesheet" href="nats.css">
 <link rel="stylesheet" href="agents.css">
+<link rel="stylesheet" href="peers.css">
 </head>
 <body>
 <div class="shell">
@@ -33,6 +34,9 @@
     <div class="page" id="page-agents">
       <div class="dmn-layout" id="dmn-layout"></div>
     </div>
+    <div class="page" id="page-peers">
+      <canvas id="peer-canvas"></canvas>
+    </div>
   </div>
   <div class="ticker" id="ticker"></div>
   <div class="ftr">
@@ -42,6 +46,7 @@
       <span class="dot" data-page="1"></span>
       <span class="dot" data-page="2"></span>
       <span class="dot" data-page="3"></span>
+      <span class="dot" data-page="4"></span>
     </div>
   </div>
 </div>
@@ -50,5 +55,6 @@
 <script src="services.js"></script>
 <script src="nats.js"></script>
 <script src="agents.js"></script>
+<script src="peers.js"></script>
 </body>
 </html>

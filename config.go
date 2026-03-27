@@ -62,6 +62,9 @@ type Config struct {
 	// LLMModel is the default model for daemon workflows.
 	LLMModel string `json:"llm_model"`
 
+	// LLMAPIKey is the API key for the LLM endpoint (used for summary generation).
+	LLMAPIKey string `json:"llm_api_key"`
+
 	// Secret is a shared secret for broker auth. If set, all broker
 	// requests must include Authorization: Bearer <secret>.
 	// Leave empty to disable auth (not recommended for production).
@@ -119,6 +122,9 @@ func loadConfig() Config {
 	}
 	if v := os.Getenv("CLAUDE_PEERS_NATS_TOKEN"); v != "" {
 		c.NatsToken = v
+	}
+	if v := os.Getenv("CLAUDE_PEERS_LLM_API_KEY"); v != "" {
+		c.LLMAPIKey = v
 	}
 
 	// Legacy env var

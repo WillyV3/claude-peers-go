@@ -114,6 +114,7 @@ func generateSummary(cwd, root, branch string, files []string) string {
 		os.Getenv("ANTHROPIC_AUTH_TOKEN"),
 		os.Getenv("ANTHROPIC_API_KEY"),
 		readClaudeSettingsKey(),
+		cfg.LLMAPIKey,
 	)
 	baseURL := cmp.Or(
 		os.Getenv("LITELLM_BASE_URL"),

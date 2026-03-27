@@ -1,0 +1,7 @@
+/* === PAGE 5: PEER NETWORK GRAPH === */
+
+#peer-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}

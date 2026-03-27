@@ -31,9 +31,10 @@ type ServiceMonitorConfig struct {
 }
 
 type HTTPCheck struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
-	Port int    `json:"port"`
+	Name   string            `json:"name"`
+	URL    string            `json:"url"`
+	Port   int               `json:"port"`
+	Headers map[string]string `json:"headers,omitempty"`
 }
 
 type TunnelCheck struct {
@@ -305,7 +306,15 @@ func checkHTTP(c HTTPCheck) ServiceEntry {
 	entry := ServiceEntry{Name: c.Name, Port: c.Port, Status: "down"}
 	start := time.Now()
 	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get(c.URL)
+	req, err := http.NewRequest("GET", c.URL, nil)
+	if err != nil {
+		entry.Detail = "bad url"
+		return entry
+	}
+	for k, v := range c.Headers {
+		req.Header.Set(k, v)
+	}
+	resp, err := client.Do(req)
 	entry.Latency = int(time.Since(start).Milliseconds())
 	if err != nil {
 		entry.Detail = "unreachable"

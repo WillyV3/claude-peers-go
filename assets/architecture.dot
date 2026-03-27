@@ -2,69 +2,58 @@ digraph architecture {
   bgcolor="#FAFAFA"
   rankdir=TB
   fontname="Helvetica"
-  node [fontname="Helvetica" fontsize=11 style="filled" fillcolor="#FFFFFF" color="#CCCCCC" shape=box penwidth=0.8]
+  node [fontname="Helvetica" fontsize=10 style="filled" fillcolor="#FFFFFF" color="#CCCCCC" shape=box penwidth=0.8]
   edge [fontname="Helvetica" fontsize=9 color="#888888" penwidth=0.8]
+  newrank=true
+  nodesep=0.6
+  ranksep=0.7
 
-  label="claude-peers: Fleet Architecture"
+  label="claude-peers: System Architecture"
   labelloc=t
   fontsize=16
   fontname="Helvetica Bold"
 
-  subgraph cluster_raspdeck {
-    label="raspdeck" fontsize=10 style="dashed" color="#AAAAAA" bgcolor="#F5F5F5"
-    gridwatch [label="Gridwatch\n(Go, embedded UI)" fillcolor="#E8F5E9"]
-    note_gw [label="5-page kiosk dashboard\nFleet | Services | NATS\nAgents | Peer Network\nLive scrolling ticker" shape=note fillcolor="#FFFFCC" color="#DDDDAA" fontsize=8]
-    gridwatch -> note_gw [style=invis]
+  // Sessions
+  subgraph cluster_sessions {
+    label="Claude Code Sessions" fontsize=10 style="dashed" color="#AAAAAA" bgcolor="#F5F5F5"
+    s1 [label="Session\nMachine A / pts/3" fillcolor="#E8F5E9"]
+    s2 [label="Session\nMachine A / pts/7" fillcolor="#E8F5E9"]
+    s3 [label="Session\nMachine B" fillcolor="#E8F5E9"]
+    s4 [label="Session\nMachine C" fillcolor="#E8F5E9"]
   }
 
-  subgraph cluster_homelab {
-    label="ubuntu-homelab" fontsize=10 style="dashed" color="#AAAAAA" bgcolor="#F5F5F5"
-    broker [label="Broker\n(HTTP API)" fillcolor="#E3F2FD"]
-    nats [label="NATS\nJetStream" fillcolor="#E3F2FD"]
-    supervisor [label="Supervisor" fillcolor="#FFF3E0"]
-    litellm [label="LiteLLM\nProxy" fillcolor="#F3E5F5"]
-    dream [label="Dream\n(fleet memory)" fillcolor="#FFF3E0"]
+  // MCP
+  mcp [label="MCP Server (per session)\n\nlist_peers | send_message\nset_summary | check_messages\n\nauto-register, heartbeat 15s\npoll messages 1s, LLM summaries" fillcolor="#E3F2FD"]
 
-    note_auth [label="Bearer token auth\non all endpoints" shape=note fillcolor="#FFFFCC" color="#DDDDAA" fontsize=8]
-    broker -> note_auth [style=invis]
+  // Broker
+  broker [label="Broker (central, always-on)\n\nPeer registry | Message queue\nEvent log | Fleet memory\nBearer token auth | SQLite" fillcolor="#E3F2FD"]
+
+  // NATS
+  nats [label="NATS JetStream\n\nfleet.peer.* | fleet.daemon.*\nfleet.message | fleet.summary\nfleet.gridwatch.*\nToken auth | 24h retention" fillcolor="#E3F2FD"]
+
+  // Services
+  subgraph cluster_services {
+    label="Autonomous Services" fontsize=10 style="dashed" color="#AAAAAA" bgcolor="#F5F5F5"
+
+    supervisor [label="Supervisor\n\nDaemon discovery\nInterval + event triggers\nTriage pre-checks\nAgent exec via LiteLLM" fillcolor="#FFF3E0"]
+
+    gridwatch [label="Gridwatch\n\n5-page kiosk dashboard\nFleet | Services | NATS\nDaemons | Peer Network\nSSH stats + live ticker" fillcolor="#FFF3E0"]
+
+    dream [label="Dream\n\nConsolidate fleet state\nShared memory document\nSync to all machines" fillcolor="#FFF3E0"]
   }
 
-  subgraph cluster_clients {
-    label="Client Machines" fontsize=10 style="dashed" color="#AAAAAA" bgcolor="#F5F5F5"
-    omarchy [label="omarchy" fillcolor="#FFFFFF"]
-    macbook1 [label="macbook1" fillcolor="#FFFFFF"]
-    thinkbook [label="thinkbook" fillcolor="#FFFFFF"]
-  }
+  // Flow
+  {s1 s2 s3 s4} -> mcp [label="" constraint=true]
+  mcp -> broker [label="HTTP\nregister / heartbeat\nmessages / summary"]
+  broker -> nats [label="dual-write\nevery event" dir=both]
 
-  subgraph cluster_edge {
-    label="Edge Devices" fontsize=10 style="dashed" color="#AAAAAA" bgcolor="#F5F5F5"
-    willyv4 [label="willyv4\n(Ghostbox)" fillcolor="#FFF3E0"]
-  }
+  nats -> supervisor [label="subscribe" dir=back constraint=true]
+  nats -> gridwatch [label="subscribe" dir=back constraint=true]
+  nats -> dream [label="subscribe" dir=back constraint=true]
 
-  // Gridwatch connections
-  gridwatch -> broker [label="peers + events\n(authed HTTP)" dir=back]
-  gridwatch -> nats [label="subscribe\nfleet.>"]
-  gridwatch -> omarchy [label="SSH stats" style=dashed color="#BBBBBB"]
-  gridwatch -> macbook1 [label="" style=dashed color="#BBBBBB"]
-  gridwatch -> thinkbook [label="" style=dashed color="#BBBBBB"]
-  gridwatch -> willyv4 [label="" style=dashed color="#BBBBBB"]
+  supervisor -> nats [label="publish results" constraint=false style=dashed]
+  dream -> broker [label="fleet memory" constraint=false style=dashed]
 
-  // Broker connections
-  omarchy -> broker [label="MCP\nregister/heartbeat/messages"]
-  macbook1 -> broker [label=""]
-  thinkbook -> broker [label=""]
-  willyv4 -> broker [label="status heartbeat"]
-
-  // NATS connections
-  broker -> nats [label="publish\nevents" dir=both]
-  supervisor -> nats [label="subscribe\ntriggers" dir=back]
-  supervisor -> nats [label="publish\nresults"]
-  dream -> nats [label="subscribe\nfleet.>" dir=back]
-  dream -> broker [label="POST\n/fleet-memory"]
-
-  // Supervisor -> LiteLLM
-  supervisor -> litellm [label="agent\ninvocation"]
-
-  // LLM summary generation
-  omarchy -> litellm [label="summary\ngeneration" style=dashed color="#BBBBBB"]
+  // Key insight note
+  note [label="Every Claude session sees every other session\nMessages arrive instantly via JSON-RPC push\nDaemons run autonomously in the background\nThe whole fleet is observable from one dashboard" shape=note fillcolor="#E8F5E9" color="#AADDAA" fontsize=9]
 }

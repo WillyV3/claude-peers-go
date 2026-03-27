@@ -62,6 +62,29 @@ func TestInvalidConfigFallsToDefaults(t *testing.T) {
 	}
 }
 
+func TestGenerateSecret(t *testing.T) {
+	s := generateSecret()
+	if len(s) < 10 {
+		t.Fatalf("secret too short: %s", s)
+	}
+	if s[:3] != "cp-" {
+		t.Fatalf("secret should start with cp-, got %s", s)
+	}
+	s2 := generateSecret()
+	if s == s2 {
+		t.Fatal("two generated secrets should differ")
+	}
+}
+
+func TestSecretEnvOverride(t *testing.T) {
+	t.Setenv("CLAUDE_PEERS_CONFIG", "/nonexistent")
+	t.Setenv("CLAUDE_PEERS_SECRET", "my-secret")
+	c := loadConfig()
+	if c.Secret != "my-secret" {
+		t.Fatalf("expected secret from env, got %s", c.Secret)
+	}
+}
+
 func TestLegacyPortEnvVar(t *testing.T) {
 	t.Setenv("CLAUDE_PEERS_CONFIG", "/nonexistent")
 	t.Setenv("CLAUDE_PEERS_PORT", "9999")

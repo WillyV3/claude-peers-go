@@ -93,13 +93,17 @@ func cliFetch(path string, body any, result any) error {
 	data, _ := json.Marshal(body)
 	client := http.Client{Timeout: 3 * time.Second}
 
-	var resp *http.Response
-	var err error
+	var req *http.Request
 	if body != nil {
-		resp, err = client.Post(cfg.BrokerURL+path, "application/json", bytes.NewReader(data))
+		req, _ = http.NewRequest("POST", cfg.BrokerURL+path, bytes.NewReader(data))
+		req.Header.Set("Content-Type", "application/json")
 	} else {
-		resp, err = client.Get(cfg.BrokerURL + path)
+		req, _ = http.NewRequest("GET", cfg.BrokerURL+path, nil)
 	}
+	if cfg.Secret != "" {
+		req.Header.Set("Authorization", "Bearer "+cfg.Secret)
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}

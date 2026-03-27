@@ -59,11 +59,15 @@ type NATSPublisher struct {
 }
 
 func newNATSPublisher() *NATSPublisher {
-	nc, err := nats.Connect(natsURL(),
+	opts := []nats.Option{
 		nats.Name("claude-peers-broker"),
-		nats.ReconnectWait(2*time.Second),
+		nats.ReconnectWait(2 * time.Second),
 		nats.MaxReconnects(-1),
-	)
+	}
+	if cfg.NatsToken != "" {
+		opts = append(opts, nats.Token(cfg.NatsToken))
+	}
+	nc, err := nats.Connect(natsURL(), opts...)
 	if err != nil {
 		log.Printf("[nats] connect failed (non-fatal, events will be SQLite-only): %v", err)
 		return nil
@@ -119,11 +123,15 @@ func (p *NATSPublisher) close() {
 // subscribeFleet subscribes to the FLEET JetStream with a named durable consumer.
 // Each caller should use a unique consumerName to avoid conflicts.
 func subscribeFleet(consumerName string, handler func(FleetEvent)) (*nats.Conn, error) {
-	nc, err := nats.Connect(natsURL(),
-		nats.Name("claude-peers-"+consumerName),
-		nats.ReconnectWait(2*time.Second),
+	subOpts := []nats.Option{
+		nats.Name("claude-peers-" + consumerName),
+		nats.ReconnectWait(2 * time.Second),
 		nats.MaxReconnects(-1),
-	)
+	}
+	if cfg.NatsToken != "" {
+		subOpts = append(subOpts, nats.Token(cfg.NatsToken))
+	}
+	nc, err := nats.Connect(natsURL(), subOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("nats connect: %w", err)
 	}

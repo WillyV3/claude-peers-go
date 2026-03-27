@@ -311,6 +311,28 @@ func writeJSON(w http.ResponseWriter, v any) {
 	json.NewEncoder(w).Encode(v)
 }
 
+// authMiddleware rejects requests without a valid Bearer token.
+// If cfg.Secret is empty, auth is disabled (all requests pass).
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if cfg.Secret == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		// Health endpoint is always public (for monitoring)
+		if r.URL.Path == "/health" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		auth := r.Header.Get("Authorization")
+		if auth != "Bearer "+cfg.Secret {
+			http.Error(w, "unauthorized", 401)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func runBroker(ctx context.Context) error {
 	b, err := newBroker()
 	if err != nil {
@@ -454,7 +476,7 @@ func runBroker(ctx context.Context) error {
 		return fmt.Errorf("listen: %w", err)
 	}
 
-	srv := &http.Server{Handler: mux}
+	srv := &http.Server{Handler: authMiddleware(mux)}
 
 	log.Printf("[claude-peers broker] listening on %s (db: %s, machine: %s)", addr, cfg.DBPath, cfg.MachineName)
 

@@ -1,11 +1,19 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 )
+
+func generateSecret() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return "cp-" + hex.EncodeToString(b)
+}
 
 // Config holds all runtime configuration for claude-peers.
 // Loaded once at startup from file → env overrides → defaults.
@@ -53,6 +61,14 @@ type Config struct {
 
 	// LLMModel is the default model for daemon workflows.
 	LLMModel string `json:"llm_model"`
+
+	// Secret is a shared secret for broker auth. If set, all broker
+	// requests must include Authorization: Bearer <secret>.
+	// Leave empty to disable auth (not recommended for production).
+	Secret string `json:"secret"`
+
+	// NatsToken is the auth token for NATS server connections.
+	NatsToken string `json:"nats_token"`
 }
 
 // cfg is the global config, loaded once at startup.
@@ -97,6 +113,12 @@ func loadConfig() Config {
 	}
 	if v := os.Getenv("CLAUDE_PEERS_LLM_MODEL"); v != "" {
 		c.LLMModel = v
+	}
+	if v := os.Getenv("CLAUDE_PEERS_SECRET"); v != "" {
+		c.Secret = v
+	}
+	if v := os.Getenv("CLAUDE_PEERS_NATS_TOKEN"); v != "" {
+		c.NatsToken = v
 	}
 
 	// Legacy env var
@@ -161,12 +183,12 @@ func writeConfig(c Config) error {
 func cliInit(args []string) {
 	if len(args) < 1 {
 		fmt.Fprintln(os.Stderr, `Usage:
-  claude-peers init broker                    Set up this machine as the broker
-  claude-peers init client <broker-url>       Connect to a remote broker
+  claude-peers init broker                          Set up as broker (generates secret)
+  claude-peers init client <broker-url> [secret]    Connect to a remote broker
 
 Examples:
   claude-peers init broker
-  claude-peers init client http://your-server:7899`)
+  claude-peers init client http://your-server:7899 cp-abc123...`)
 		os.Exit(1)
 	}
 
@@ -177,9 +199,14 @@ Examples:
 		c.Role = "broker"
 		c.Listen = "0.0.0.0:7899"
 		c.BrokerURL = "http://127.0.0.1:7899"
+		c.Secret = generateSecret()
 
 	case "client":
 		c.Role = "client"
+		// Client needs the same secret as the broker
+		if len(args) >= 3 {
+			c.Secret = args[2]
+		}
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "Error: client requires a broker URL")
 			fmt.Fprintln(os.Stderr, "  claude-peers init client http://<broker-ip>:7899")
@@ -201,6 +228,9 @@ Examples:
 	fmt.Printf("  role:         %s\n", c.Role)
 	fmt.Printf("  machine_name: %s\n", c.MachineName)
 	fmt.Printf("  broker_url:   %s\n", c.BrokerURL)
+	if c.Secret != "" {
+		fmt.Printf("  secret:       %s\n", c.Secret)
+	}
 	if c.Role == "broker" {
 		fmt.Printf("  listen:       %s\n", c.Listen)
 		fmt.Printf("  db_path:      %s\n", c.DBPath)

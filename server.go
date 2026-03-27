@@ -25,7 +25,15 @@ func brokerFetch(path string, body any, result any) error {
 	if err != nil {
 		return err
 	}
-	resp, err := http.Post(cfg.BrokerURL+path, "application/json", bytes.NewReader(data))
+	req, err := http.NewRequest("POST", cfg.BrokerURL+path, bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if cfg.Secret != "" {
+		req.Header.Set("Authorization", "Bearer "+cfg.Secret)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -42,7 +50,7 @@ func brokerFetch(path string, body any, result any) error {
 
 func isBrokerAlive() bool {
 	client := http.Client{Timeout: 2 * time.Second}
-	resp, err := client.Get(cfg.BrokerURL + "/health")
+	resp, err := client.Get(cfg.BrokerURL + "/health") // /health is always public
 	if err != nil {
 		return false
 	}
@@ -220,7 +228,11 @@ func runServer(ctx context.Context) error {
 
 func syncFleetMemory() {
 	client := http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get(cfg.BrokerURL + "/fleet-memory")
+	req, _ := http.NewRequest("GET", cfg.BrokerURL+"/fleet-memory", nil)
+	if cfg.Secret != "" {
+		req.Header.Set("Authorization", "Bearer "+cfg.Secret)
+	}
+	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != 200 {
 		return
 	}

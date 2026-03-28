@@ -1,2 +1,3 @@
 [tools]
-allow = ["bash", "read", "write", "recall", "memorize"]
+allow = ["bash", "read", "write", "web_fetch", "agent"]
+deny = ["rm -rf", "git push --force", "shutdown", "reboot"]

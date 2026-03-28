@@ -1,22 +1,3 @@
 [tools]
-allow = ["bash", "read", "write", "agent"]
+allow = ["bash", "read", "write", "web_fetch", "agent"]
 deny = ["rm -rf", "git push", "shutdown", "reboot"]
-
-[policy]
-name = "librarian"
-
-[policy.constraints]
-max_file_deletes = 0
-max_file_renames = 0
-allowed_paths = [
-    "~/projects/claude-peers/README.md",
-    "~/projects/claude-peers/docs/",
-    "~/claude-peers-daemons/",
-    "/tmp/daemon-librarian/"
-]
-forbidden_paths = [
-    "~/.ssh/",
-    "~/.config/claude-peers/config.json",
-    "~/.config/claude-peers/identity.pem",
-    "~/.config/claude-peers/token.jwt"
-]

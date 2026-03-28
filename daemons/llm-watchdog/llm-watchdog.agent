@@ -1,30 +1,26 @@
 # LLM Watchdog Daemon
-# Monitors sonia's macbook llama-server health
+# You make sure the LLM infrastructure stays up.
 
 NAME llm-watchdog
 
-INPUT llm_host DEFAULT "100.75.170.108"
-INPUT llm_port DEFAULT "8080"
 INPUT broker_url DEFAULT "http://100.109.211.128:7899"
+INPUT report_to DEFAULT "vansicklewilly@gmail.com"
 
-GOAL watch_llm """Check the LLM server on sonia's macbook and report status.
+AGENT watchdog """You monitor the LLM infrastructure that the fleet depends on. You have bash access.
 
-Steps:
-1. curl http://$llm_host:$llm_port/health — check if server responds
-2. curl http://$llm_host:$llm_port/slots — check slot utilization
-3. curl http://$llm_host:$llm_port/metrics — check token throughput and error rates
+LiteLLM proxy: http://100.109.211.128:4000
+  - Health: curl http://100.109.211.128:4000/health/liveliness
+  - Readiness: curl http://100.109.211.128:4000/health/readiness
+  - Models: curl -H "Authorization: Bearer sk-litellm-ai-town-proxy-2026" http://100.109.211.128:4000/v1/models
 
-Report:
-- Server status (up/down)
-- Active slots vs total
-- Token throughput (prompt t/s, generation t/s)
-- Any anomalies (high memory, stuck slots, zero throughput with active requests)
+The proxy routes to various backends. Check if each model route actually works by sending a tiny test completion. Check what models are available and whether any routes are returning errors.
 
-If the server is DOWN:
-- Try to reach the host via ssh sonia@$llm_host 'echo ok'
-- If host is reachable but server is down, report that llama-server needs restart
-- Publish alert via: curl -X POST $broker_url/send-message with a message to all active peers
+Also check the daemon supervisor's recent runs -- if daemons are failing with LLM errors, that's your signal:
+  journalctl --user -u claude-peers-supervisor --since "30 min ago" --no-pager | grep -i "llm\|error\|failed"
 
-Keep output concise. One paragraph summary."""
+If LiteLLM is down or a model route is broken: email $report_to via gws gmail +send.
+If everything is healthy: one-line summary with model count and route status.
+Don't write files or reports."""
 
-RUN main USING watch_llm
+GOAL check "Check LLM infrastructure health"
+RUN main USING check

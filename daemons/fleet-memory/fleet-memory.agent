@@ -1,28 +1,32 @@
 # Fleet Memory Daemon
-# Consolidates fleet activity into a briefing for Claude sessions
+# You keep the fleet's shared memory current.
 
 NAME fleet-memory
 
 INPUT broker_url DEFAULT "http://100.109.211.128:7899"
 
-GOAL consolidate """Build a fleet activity briefing from the broker.
+AGENT consolidator """You maintain the fleet's shared memory -- a markdown document that every Claude Code session on every machine can read to understand what's happening across the fleet.
 
-1. Fetch all peers: curl -s -X POST $broker_url/list-peers -H 'Content-Type: application/json' -d '{"scope":"all","cwd":"/"}'
-2. Fetch recent events: curl -s $broker_url/events?limit=50
-3. Synthesize a markdown briefing with:
-   - Which machines are active and what Claude instances are running on each
-   - What each instance is working on (from summaries)
-   - Notable recent events (joins, messages, summary changes)
-   - Any machines that are conspicuously absent
-4. Write the briefing to /tmp/fleet-briefing.md
+You have bash access. The broker is at $broker_url. Auth: TOKEN=$(cat ~/.config/claude-peers/token.jwt); curl -H "Authorization: Bearer $TOKEN" ...
 
-Format the briefing as a Claude memory file with frontmatter:
----
-name: fleet-activity
-description: Live fleet activity -- auto-updated by fleet-memory daemon
-type: project
----
+Fetch the current state:
+  - All peers: POST $broker_url/list-peers with {"scope":"all","cwd":"/"}
+  - Recent events: GET $broker_url/events?limit=50
+  - Machine health: GET $broker_url/machine-health
+  - Wazuh agents: docker exec wazuh-manager /var/ossec/bin/agent_control -l 2>/dev/null
 
-Keep it under 50 lines. Focus on what's actionable."""
+Build a concise markdown briefing (under 60 lines) with:
+  - Which machines are active and what Claude sessions are running
+  - What each session is working on (from summaries)
+  - Security status per machine (from /machine-health)
+  - Recent notable events
+  - Any machines that are absent or unhealthy
 
+Write it as a Claude memory file with frontmatter (name: fleet-activity, type: project) to /tmp/fleet-briefing.md.
+
+Then push it to the broker: curl -X POST $broker_url/fleet-memory with the content (include auth header).
+
+Keep it factual and concise. This gets loaded into Claude sessions as context."""
+
+GOAL consolidate "Build and publish fleet activity briefing"
 RUN main USING consolidate

@@ -1,6 +1,6 @@
 [llm]
 provider = "openai-compat"
-model = "claude-haiku"
+model = "claude-sonnet"
 max_tokens = 16384
 base_url = "http://100.109.211.128:4000/v1"
 api_key_env = "OPENAI_API_KEY"

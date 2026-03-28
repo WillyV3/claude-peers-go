@@ -142,6 +142,32 @@ exit 1
 
 Without a triage script, the daemon always runs on schedule.
 
+### EDR-aware triage
+
+Triage scripts can check the broker's `/machine-health` endpoint to react to security events:
+
+```bash
+#!/bin/bash
+# Check fleet security status before running
+health=$(curl -sf -H "Authorization: Bearer $(cat ~/.config/claude-peers/token.jwt)" \
+  http://100.109.211.128:7899/machine-health 2>/dev/null)
+degraded=$(echo "$health" | python3 -c \
+  'import sys,json; d=json.load(sys.stdin); print(sum(1 for v in d.values() if v["status"]!="healthy"))' 2>/dev/null)
+
+if [ "${degraded:-0}" -gt 0 ]; then
+    echo "URGENT: $degraded machines unhealthy"
+fi
+exit 0
+```
+
+Current triage behaviors:
+- **fleet-scout**: Always runs. Reports URGENT if any machines are degraded/quarantined.
+- **pr-helper**: Refuses to push code if ubuntu-homelab is quarantined.
+- **sync-janitor**: Skips if machine is quarantined (don't touch files on compromised host).
+- **fleet-memory**: Always runs. Notes unhealthy machines for inclusion in the briefing.
+- **librarian**: Always runs (read-only). Notes unhealthy machines for audit focus.
+- **llm-watchdog**: Always runs. No security gate.
+
 ## Supervisor behavior
 
 - **Single instance**: Only one invocation per daemon at a time
@@ -155,12 +181,12 @@ Without a triage script, the daemon always runs on schedule.
 
 | Daemon | Schedule | Purpose |
 |--------|----------|---------|
-| fleet-scout | 15m | Check health of all machines and services, report anomalies |
-| fleet-memory | event:fleet.> | Consolidate fleet activity into shared Claude memory |
-| pr-helper | 30m | Keep PRs mergeable across GitHub orgs (human-frontier-lab, williavs, WillyV3) |
-| llm-watchdog | 15m | Monitor LLM server health, alert if down |
-| sync-janitor | 30m | Detect Syncthing conflict files, email analysis report |
-| librarian | 6h | Audit documentation against live fleet state across all machines |
+| fleet-scout | 10m | Check health of all machines and services, report anomalies |
+| fleet-memory | 10m | Consolidate fleet activity into shared Claude memory |
+| llm-watchdog | 10m | Monitor LLM server health, alert if down |
+| pr-helper | 15m | Keep PRs mergeable across GitHub orgs (human-frontier-lab, williavs, WillyV3) |
+| sync-janitor | 15m | Detect Syncthing conflict files, email analysis report |
+| librarian | 3h | Audit and update documentation across fleet machines |
 
 ## Monitoring daemons
 

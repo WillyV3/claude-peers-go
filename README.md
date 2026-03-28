@@ -83,20 +83,31 @@ Manages autonomous agent workflows. Each daemon is defined by:
 **Built-in daemons:**
 | Daemon | Schedule | What it does |
 |--------|----------|-------------|
-| fleet-scout | 15m | Check health of all machines and services |
-| fleet-memory | event:fleet.> | Consolidate fleet activity into shared memory |
-| pr-helper | 30m | Keep PRs mergeable across GitHub orgs |
-| llm-watchdog | 15m | Monitor LLM server health |
-| sync-janitor | 30m | Detect and report Syncthing conflicts |
-| librarian | 6h | Audit documentation against live fleet state |
+| fleet-scout | 10m | Check health of all machines and services |
+| fleet-memory | 10m | Consolidate fleet activity into shared memory |
+| llm-watchdog | 10m | Monitor LLM server health |
+| pr-helper | 15m | Keep PRs mergeable across GitHub orgs |
+| sync-janitor | 15m | Detect and report Syncthing conflicts |
+| librarian | 3h | Audit and update documentation across fleet machines |
+
+All daemons have EDR-aware triage gates -- they check machine health before running and refuse to operate from quarantined machines.
+
+### Security Watch
+Long-running correlator that subscribes to `fleet.security.>` events and detects:
+- **Distributed attacks**: Same rule ID firing on 3+ machines within 5 minutes
+- **Brute force**: 5+ auth failures from same machine within 10 minutes
+- **Credential theft**: FIM event on identity.pem/token.jwt + peer registration within 5 minutes
+
+Escalates to quarantine and emails alerts on detection.
 
 ### Gridwatch Dashboard
-5-page real-time kiosk dashboard:
+6-page real-time kiosk dashboard:
 1. **Fleet**: Machine tiles with CPU/RAM/disk, live Claude agents, LLM status
 2. **Services**: Docker, Syncthing, systemd, Cloudflare tunnel monitoring
 3. **NATS**: JetStream stats, connections, consumers, message flow
 4. **Agents**: Daemon status cards with run history, sparklines, output
 5. **Peers**: Constellation network graph of the agent mesh
+6. **Security**: Per-machine Wazuh EDR status, health scores, quarantine state
 
 Embedded in the binary. Serves on any port. Auto-rotates pages.
 
@@ -189,6 +200,7 @@ sontara-lattice dream-watch                    Continuous fleet memory via NATS
 sontara-lattice supervisor                     Run daemon supervisor
 sontara-lattice gridwatch                      Start fleet dashboard
 sontara-lattice wazuh-bridge                   Bridge Wazuh alerts to NATS
+sontara-lattice security-watch                 Correlate security events, escalate, alert
 ```
 
 ## Configuration

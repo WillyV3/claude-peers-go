@@ -181,6 +181,24 @@ EOF
 
 systemctl --user daemon-reload
 systemctl --user enable --now sontara-broker sontara-dream sontara-supervisor
+
+# Security watch (correlates EDR events, escalates, emails alerts)
+cat > ~/.config/systemd/user/sontara-security-watch.service << 'EOF'
+[Unit]
+Description=Sontara Lattice Security Watch
+After=network-online.target
+
+[Service]
+ExecStart=%h/.local/bin/claude-peers security-watch
+Restart=always
+RestartSec=5
+Environment=CLAUDE_PEERS_TOKEN=<fleet-write-jwt>
+
+[Install]
+WantedBy=default.target
+EOF
+
+systemctl --user enable --now sontara-security-watch
 ```
 
 ## Step 8: Set up Wazuh EDR (optional but recommended)

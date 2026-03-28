@@ -1,8 +1,13 @@
-[agent]
-model = "sonnet"
+[llm]
+provider = "openai-compat"
+model = "claude-sonnet"
+max_tokens = 16384
+base_url = "http://100.109.211.128:4000/v1"
+api_key_env = "OPENAI_API_KEY"
 
-[agent.permissions]
-allow_bash = true
-allow_read = true
-allow_write = false
-allow_edit = false
+[small_llm]
+provider = "openai-compat"
+model = "claude-haiku"
+max_tokens = 4096
+base_url = "http://100.109.211.128:4000/v1"
+api_key_env = "OPENAI_API_KEY"

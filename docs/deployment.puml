@@ -1,0 +1,97 @@
+@startuml Fleet Deployment
+!theme cyborg
+skinparam backgroundColor #0B0C16
+skinparam defaultFontColor #ddf7ff
+skinparam defaultFontName "Monaspace Krypton"
+skinparam nodeFontSize 12
+skinparam componentFontSize 10
+skinparam noteFontSize 9
+skinparam arrowColor #6a6e95
+skinparam rectangleBorderColor #1a1c30
+skinparam nodeBorderColor #1a1c30
+
+title <color:#82FB9C><b>FLEET DEPLOYMENT</b></color>\n<color:#6a6e95>Physical machines on Tailscale mesh</color>
+
+cloud "Tailscale VPN\n<color:#6a6e95>Encrypted mesh</color>" as tailscale {
+
+  node "ubuntu-homelab\n<color:#6a6e95>100.109.211.128</color>\n<color:#6a6e95>Ubuntu 24.04 | 32GB</color>" as homelab {
+    component "[Trust Broker]\n:7899" as broker
+    component "[NATS Server]\n:4222" as nats
+    component "[Supervisor]" as supervisor
+    component "[Dream Watch]" as dream
+    component "[Wazuh Bridge]" as wbridge
+    component "[Wazuh Manager]\n:1514 :55000\n<color:#6a6e95>Docker</color>" as wazuh
+    component "[LiteLLM Proxy]\n:4000\n<color:#6a6e95>Docker</color>" as litellm
+    database "SQLite" as db
+  }
+
+  node "omarchy\n<color:#6a6e95>100.85.150.110</color>\n<color:#6a6e95>Arch | N100 | 16GB</color>" as omarchy {
+    component "[Claude Code]\nMCP + Peers" as cc1
+    component "[Wazuh Agent]" as wa1
+  }
+
+  node "thinkbook\n<color:#6a6e95>100.119.90.27</color>\n<color:#6a6e95>Arch | i5 | 8GB</color>" as thinkbook {
+    component "[Claude Code]\nMCP + Peers" as cc2
+    component "[Wazuh Agent]" as wa2
+  }
+
+  node "raspdeck\n<color:#6a6e95>Pi 5 | 16GB</color>" as raspdeck {
+    component "[Gridwatch]\n:8888\n<color:#6a6e95>5-page kiosk</color>" as gridwatch
+    component "[Claude Code]" as cc3
+    component "[Wazuh Agent]" as wa3
+  }
+
+  node "willyv4\n<color:#6a6e95>100.95.2.57</color>\n<color:#6a6e95>Pi Zero 2W | 512MB</color>" as willyv4 {
+    component "[ghostbox]\nVoice agent" as ghost
+    component "[Awareness\nEngine]" as aware
+  }
+
+  node "macbook1\n<color:#6a6e95>100.67.104.73</color>\n<color:#6a6e95>MacBook Pro</color>" as macbook {
+    component "[Claude Code]" as cc4
+    component "[Wazuh Agent]" as wa4
+  }
+}
+
+' Connections
+cc1 -[#82FB9C]-> broker
+cc2 -[#82FB9C]-> broker
+cc3 -[#82FB9C]-> broker
+cc4 -[#82FB9C]-> broker
+ghost -[#82FB9C]-> broker
+
+wa1 -[#ff6b6b]-> wazuh
+wa2 -[#ff6b6b]-> wazuh
+wa3 -[#ff6b6b]-> wazuh
+wa4 -[#ff6b6b]-> wazuh
+wazuh -> wbridge
+wbridge -[#ff6b6b]-> nats
+
+broker -> nats
+broker -> db
+dream -> nats
+supervisor -> litellm
+gridwatch -[#85E1FB]-> broker
+gridwatch -[#85E1FB]-> nats
+
+aware -[#7cf8f7]-> nats : <color:#7cf8f7>telemetry</color>
+
+note right of homelab
+  <b>Services running:</b>
+  - Trust Broker (systemd)
+  - NATS JetStream (systemd)
+  - Daemon Supervisor (systemd)
+  - Fleet Memory / Dream (systemd)
+  - Wazuh Bridge (systemd)
+  - Wazuh Manager (Docker)
+  - LiteLLM Proxy (Docker)
+end note
+
+note bottom of willyv4
+  <b>Cyberdeck:</b>
+  Battery-powered
+  Whisplay HAT
+  4G capable
+  No Wazuh (ARMv7)
+end note
+
+@enduml

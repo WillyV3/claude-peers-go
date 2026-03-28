@@ -1,0 +1,106 @@
+@startuml Sontara Lattice Architecture
+!theme cyborg
+skinparam backgroundColor #0B0C16
+skinparam defaultFontColor #ddf7ff
+skinparam defaultFontName "Monaspace Krypton"
+skinparam defaultFontSize 11
+skinparam nodeFontSize 12
+skinparam componentFontSize 11
+skinparam noteFontSize 10
+skinparam arrowColor #6a6e95
+skinparam rectangleBorderColor #1a1c30
+skinparam nodeBorderColor #1a1c30
+skinparam componentBorderColor #1a1c30
+skinparam cloudBorderColor #1a1c30
+
+title <color:#82FB9C><b>SONTARA LATTICE</b></color>\n<color:#6a6e95>Claude-native fleet trust platform</color>
+
+' === AGENT LAYER ===
+rectangle "<color:#82FB9C>AGENT LAYER</color>" as agents #0f1019 {
+  node "omarchy\n<color:#D97757>Claude Code</color>" as omarchy #0f1019 {
+    component "MCP Server" as mcp1 #1a1c30
+    component "UCAN: peer-session" as ucan1 #1a1c30
+  }
+  node "thinkbook\n<color:#D97757>Claude Code</color>" as thinkbook #0f1019 {
+    component "MCP Server" as mcp2 #1a1c30
+    component "UCAN: peer-session" as ucan2 #1a1c30
+  }
+  node "willyv4\n<color:#D97757>ghostbox</color>" as willyv4 #0f1019 {
+    component "StatusFunc" as status1 #1a1c30
+    component "UCAN: peer-session" as ucan3 #1a1c30
+  }
+}
+
+' === DAEMON LAYER ===
+rectangle "<color:#7cf8f7>DAEMON LAYER</color>" as daemons #0f1019 {
+  component "fleet-scout\n<color:#6a6e95>interval:15m</color>" as scout #1a1c30
+  component "pr-helper\n<color:#6a6e95>interval:30m</color>" as prhelper #1a1c30
+  component "fleet-memory\n<color:#6a6e95>event:fleet.></color>" as fmem #1a1c30
+  component "librarian\n<color:#6a6e95>interval:6h</color>" as librarian #1a1c30
+  component "sync-janitor\n<color:#6a6e95>interval:30m</color>" as janitor #1a1c30
+  component "llm-watchdog\n<color:#6a6e95>interval:15m</color>" as watchdog #1a1c30
+}
+
+' === PLATFORM LAYER ===
+rectangle "<color:#50f872>PLATFORM LAYER</color>" as platform #0f1019 {
+  node "ubuntu-homelab" as homelab #0f1019 {
+    component "Trust Broker\n<color:#82FB9C>UCAN validation</color>\n<color:#82FB9C>Peer registry</color>\n<color:#82FB9C>Health scoring</color>" as broker #1a1c30
+    component "Daemon Supervisor\n<color:#6a6e95>Lifecycle management</color>\n<color:#6a6e95>Triage + scheduling</color>" as supervisor #1a1c30
+    component "Fleet Memory\n<color:#6a6e95>dream-watch</color>" as dream #1a1c30
+    database "SQLite" as db #1a1c30
+  }
+}
+
+' === EVENT BUS ===
+queue "NATS JetStream\n<color:#7cf8f7>fleet.peer.*</color>\n<color:#7cf8f7>fleet.security.*</color>\n<color:#7cf8f7>fleet.daemon.*</color>" as nats #1a1c30
+
+' === SECURITY LAYER ===
+rectangle "<color:#ff6b6b>SECURITY LAYER</color>" as security #0f1019 {
+  component "Wazuh Manager\n<color:#6a6e95>Docker</color>" as wazuh #1a1c30
+  component "Wazuh Bridge\n<color:#6a6e95>alerts.json -> NATS</color>" as bridge #1a1c30
+  collections "Wazuh Agents" as wagents #1a1c30
+}
+
+' === OBSERVABILITY LAYER ===
+rectangle "<color:#85E1FB>OBSERVABILITY</color>" as observability #0f1019 {
+  node "raspdeck" as raspdeck #0f1019 {
+    component "Gridwatch\n<color:#6a6e95>5-page kiosk</color>\n<color:#6a6e95>Fleet | Services | NATS</color>\n<color:#6a6e95>Daemons | Peers</color>" as gridwatch #1a1c30
+  }
+}
+
+' === CONNECTIONS ===
+omarchy -[#82FB9C]-> broker : <color:#82FB9C>UCAN Bearer</color>
+thinkbook -[#82FB9C]-> broker : <color:#82FB9C>UCAN Bearer</color>
+willyv4 -[#82FB9C]-> broker : <color:#82FB9C>UCAN Bearer</color>
+
+supervisor -[#7cf8f7]-> scout
+supervisor -[#7cf8f7]-> prhelper
+supervisor -[#7cf8f7]-> fmem
+supervisor -[#7cf8f7]-> librarian
+supervisor -[#7cf8f7]-> janitor
+supervisor -[#7cf8f7]-> watchdog
+
+broker -[#7cf8f7]-> nats : publish
+dream -[#7cf8f7]-> nats : subscribe
+scout -[#6a6e95]-> broker : fleet-read
+prhelper -[#6a6e95]-> broker : fleet-write
+
+wagents -[#ff6b6b]-> wazuh : <color:#ff6b6b>agent reports</color>
+wazuh -[#ff6b6b]-> bridge
+bridge -[#ff6b6b]-> nats : <color:#ff6b6b>fleet.security.*</color>
+nats -[#ff6b6b]-> broker : <color:#ff6b6b>trust demotion</color>
+
+gridwatch -[#85E1FB]-> broker : poll
+gridwatch -[#85E1FB]-> nats : subscribe
+
+broker -[#6a6e95]-> db
+
+legend right
+  |<color:#82FB9C> Green </color>| Trust / Auth |
+  |<color:#7cf8f7> Cyan </color>| Coordination |
+  |<color:#ff6b6b> Red </color>| Security |
+  |<color:#85E1FB> Blue </color>| Observability |
+  |<color:#D97757> Orange </color>| Claude Code |
+endlegend
+
+@enduml

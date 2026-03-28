@@ -12,24 +12,11 @@ Built on: **Claude Code** + **UCAN capability tokens** + **NATS JetStream** + **
 
 ## Architecture
 
-```
-Claude Code (omarchy)    Claude Code (thinkbook)    Daemon: fleet-scout    Daemon: pr-helper
-  MCP Server               MCP Server                Agentfile + Policy     Agentfile + Policy
-  UCAN: [peer-session]     UCAN: [peer-session]      UCAN: [fleet-read]     UCAN: [fleet-write]
-       |                        |                          |                       |
-       +------------------ NATS JetStream (fleet.*) --------------------------+
-                                        |
-                                 Trust Broker
-                          (UCAN validation + peer registry
-                           + health scoring + fleet memory)
-                                        |
-                          +-------------+-------------+
-                          |                           |
-                   Wazuh EDR Bridge             Gridwatch Dashboard
-                (file integrity, auth logs,    (5-page real-time kiosk:
-                 process + network monitoring)  fleet, services, NATS,
-                                                daemons, peer graph)
-```
+![Architecture](assets/architecture.png)
+
+![Fleet Deployment](assets/deployment.png)
+
+![Trust Flow](assets/trust-flow.png)
 
 Every participant in the lattice gets:
 - **Identity**: Ed25519 keypair (hardware-backed where available -- TPM, Secure Enclave)

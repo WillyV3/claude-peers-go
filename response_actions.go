@@ -225,10 +225,10 @@ func (rd *ResponseDaemon) sendIncidentEmail(incident *Incident) error {
 		}
 	}
 
-	cmd := exec.Command("gws", "gmail", "+send",
-		"--to", rd.emailTo,
-		"--subject", subject,
-		"--body", body.String())
+	cmd := exec.Command("resend-email",
+		"-m", body.String(),
+		rd.emailTo,
+		subject)
 	if err := cmd.Start(); err != nil {
 		log.Printf("[response] email send failed: %v", err)
 		return err

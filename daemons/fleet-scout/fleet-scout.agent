@@ -30,7 +30,7 @@ What to check -- everything. SSH to machines, curl APIs, check NATS consumers (N
 
 If everything is fine: one-line summary.
 If something is wrong: clear summary of what and why.
-If something critical is down: email $report_to via gws gmail +send.
+If something critical is down: email $report_to via resend-email.
 Don't write files. Don't generate reports. Check, summarize, alert."""
 
 GOAL check "Full fleet health check"

@@ -18,7 +18,7 @@ The proxy routes to various backends. Check if each model route actually works b
 Also check the daemon supervisor's recent runs -- if daemons are failing with LLM errors, that's your signal:
   journalctl --user -u claude-peers-supervisor --since "30 min ago" --no-pager | grep -i "llm\|error\|failed"
 
-If LiteLLM is down or a model route is broken: email $report_to via gws gmail +send.
+If LiteLLM is down or a model route is broken: email $report_to via: resend-email -m "<body>" "$report_to" "<subject>"
 If everything is healthy: one-line summary with model count and route status.
 Don't write files or reports."""
 

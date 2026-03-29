@@ -272,10 +272,10 @@ func (sw *SecurityWatch) sendEmailAlert(machine string, event SecurityEvent, rea
 		"Reason: " + reason + "\n" +
 		"Time: " + event.Timestamp + "\n"
 
-	cmd := exec.Command("gws", "gmail", "+send",
-		"--to", "vansicklewilly@gmail.com",
-		"--subject", subject,
-		"--body", body)
+	cmd := exec.Command("resend-email",
+		"-m", body,
+		"vansicklewilly@gmail.com",
+		subject)
 	if err := cmd.Start(); err != nil {
 		log.Printf("[security-watch] email send failed: %v", err)
 		return

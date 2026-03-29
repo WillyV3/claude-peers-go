@@ -24,7 +24,7 @@ What you do every run:
 
 1. cd ~/projects/claude-peers && git checkout main && git pull
 
-2. Run go test -count=1 ./... -- if tests fail, email $report_to and stop.
+2. Run go test -count=1 ./... -- if tests fail, email $report_to via `resend-email -m "<failure details>" "$report_to" "[librarian] Tests FAILED"` and stop.
 
 3. Check what's actually running: services, daemons, Wazuh agents, NATS consumers, broker health, machine health. Use curl, systemctl, docker exec, ssh -- whatever you need.
 

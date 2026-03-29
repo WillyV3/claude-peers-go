@@ -17,7 +17,7 @@ If conflicts found, for each one:
   - Note: identical? one newer? different content?
 
 Build a clear report and email it:
-  gws gmail +send --to $report_to --subject "Sync Janitor: N conflicts found" --body "<report>"
+  resend-email -m "<report>" "$report_to" "Sync Janitor: N conflicts found"
 
 Also print the report to stdout."""
 

@@ -51,7 +51,7 @@ NATS CONSUMERS
   ...
 
 Send via:
-  gws gmail +send --to $report_to --subject "[fleet-digest] $(date +%Y-%m-%d\ %H:%M) -- <brief status>" --body "<the report>"
+  resend-email -m "<the report>" "$report_to" "[fleet-digest] $(date +%Y-%m-%d %H:%M) -- <brief status>"
 
 Keep the email under 50 lines. Facts only, no fluff."""
 

@@ -167,6 +167,7 @@ Current triage behaviors:
 - **fleet-memory**: Always runs. Notes unhealthy machines for inclusion in the briefing.
 - **librarian**: Always runs (read-only). Notes unhealthy machines for audit focus.
 - **llm-watchdog**: Always runs. No security gate.
+- **fleet-digest**: No triage gate (interval:60m). Compiles and emails hourly status regardless of fleet health.
 
 ## Supervisor behavior
 
@@ -181,14 +182,15 @@ Current triage behaviors:
 
 | Daemon | Schedule | Purpose |
 |--------|----------|---------|
-| fleet-scout | 10m | Check health of all machines and services, report anomalies |
+| fleet-scout | 10m | Monitors fleet health across all machines and services |
 | fleet-memory | 10m | Consolidate fleet activity into shared Claude memory |
 | llm-watchdog | 10m | Monitor LLM server health, restart if down, alert on anomalies |
 | pr-helper | 15m | Keep PRs mergeable across GitHub orgs (human-frontier-lab, williavs, WillyV3) |
-| sync-janitor | 15m | Detect Syncthing conflict files, email analysis report |
+| sync-janitor | 15m | Detect Syncthing conflict files, analyze them, and email a resolution report |
+| fleet-digest | 60m | Hourly fleet digest email -- daemons, security, peers, machine health |
 | librarian | 3h | Audit and update documentation across fleet machines |
 
-> **Note on llm-watchdog**: `llm-watchdog` intentionally uses `claude-haiku` as its primary LLM (not `claude-sonnet`). It runs every 10 minutes and performs simple health checks — haiku is sufficient and avoids burning capacity on a high-frequency monitoring loop. All other daemons use `claude-sonnet` for their primary work.
+> **Note on llm-watchdog and fleet-digest**: Both use `claude-haiku` as their primary LLM (not `claude-sonnet`). `llm-watchdog` runs every 10 minutes and performs simple health checks — haiku is sufficient and avoids burning capacity on a high-frequency monitoring loop. `fleet-digest` compiles data from API endpoints and formats a fixed-template email — also data-assembly work that doesn't require heavy reasoning. All other daemons use `claude-sonnet` for their primary work.
 
 ## Monitoring daemons
 

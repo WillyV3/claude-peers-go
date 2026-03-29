@@ -325,8 +325,8 @@ func simCredentialTheft(target string, dryRun bool) error {
 func simBinaryTamper(target string, dryRun bool) error {
 	fmt.Printf("=== SIM: Binary Tamper on %s ===\n", target)
 
-	// Step 1: Create a fake binary (NOT the real one)
-	cmd := `sudo touch /usr/local/bin/claude-peers-sim-test`
+	// Step 1: Create a fake binary in ~/.local/bin (user-writable, FIM realtime monitored)
+	cmd := `touch ~/.local/bin/claude-peers-sim-test`
 	fmt.Println("  Creating fake tampered binary...")
 	if dryRun {
 		fmt.Printf("  [DRY-RUN] SSH %s: %s\n", target, cmd)
@@ -343,7 +343,7 @@ func simBinaryTamper(target string, dryRun bool) error {
 	} else {
 		fmt.Println("  Waiting for FIM detection (up to 180s)...")
 		pass = simWaitForHealth(target, func(h *MachineHealth) bool {
-			return h.Status == "quarantined"
+			return h.Score > 0 // Any detection counts -- binary deploy is Level 7 (warning), not quarantine
 		}, 180*time.Second)
 		if pass {
 			health := simFetchHealth()
@@ -355,7 +355,7 @@ func simBinaryTamper(target string, dryRun bool) error {
 
 	// Step 3: Cleanup
 	fmt.Println("  Cleaning up...")
-	cleanupCmd := `sudo rm -f /usr/local/bin/claude-peers-sim-test`
+	cleanupCmd := `rm -f ~/.local/bin/claude-peers-sim-test`
 	if dryRun {
 		fmt.Printf("  [DRY-RUN] SSH %s: %s\n", target, cleanupCmd)
 		fmt.Printf("  [DRY-RUN] Would unquarantine %s\n", target)

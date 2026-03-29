@@ -50,6 +50,10 @@ func (b *Broker) updateMachineHealth(event SecurityEvent) {
 	switch event.Severity {
 	case "warning":
 		h.Score += 1
+		// Warnings cap at 9 -- they can degrade but never quarantine alone.
+		if h.Score > 9 {
+			h.Score = 9
+		}
 	case "critical":
 		h.Score += 10
 	case "quarantine":

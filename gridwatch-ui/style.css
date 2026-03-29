@@ -171,3 +171,21 @@ html, body {
   background: var(--cyan);
   box-shadow: 0 0 6px rgba(124, 248, 247, 0.4);
 }
+
+/* Paused indicator: active dot pulses slowly to show rotation is stopped */
+.page-dots.paused .dot.active {
+  animation: dot-paused 2s ease-in-out infinite;
+}
+
+@keyframes dot-paused {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Page label shows PAUSED state */
+.page-label.paused::after {
+  content: ' ||';
+  color: var(--dim);
+  font-size: 7px;
+  letter-spacing: 0;
+}

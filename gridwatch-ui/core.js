@@ -49,6 +49,7 @@ function normalizeMachine(name) {
 let currentPage = 0;
 let rotateTimer = null;
 let autoRotate = true;
+let pauseTimeout = null;
 
 function goToPage(idx) {
   if (idx === currentPage) return;
@@ -72,14 +73,47 @@ function goToPage(idx) {
   if (idx === PAGE_LABELS.indexOf('PEERS')) startPeerGraph();
   else stopPeerGraph();
 
-  resetRotateTimer();
+  if (autoRotate) resetRotateTimer();
+  updatePauseIndicator();
 }
 
+function prevPage() { goToPage((currentPage - 1 + PAGE_LABELS.length) % PAGE_LABELS.length); }
 function nextPage() { goToPage((currentPage + 1) % PAGE_LABELS.length); }
+
+function pauseRotation(durationMs) {
+  autoRotate = false;
+  if (rotateTimer) { clearInterval(rotateTimer); rotateTimer = null; }
+  if (pauseTimeout) clearTimeout(pauseTimeout);
+  if (durationMs) {
+    pauseTimeout = setTimeout(() => { resumeRotation(); }, durationMs);
+  }
+  updatePauseIndicator();
+}
+
+function resumeRotation() {
+  autoRotate = true;
+  if (pauseTimeout) { clearTimeout(pauseTimeout); pauseTimeout = null; }
+  resetRotateTimer();
+  updatePauseIndicator();
+}
+
+function togglePause() {
+  if (autoRotate) pauseRotation(0); // indefinite pause
+  else resumeRotation();
+}
 
 function resetRotateTimer() {
   if (rotateTimer) clearInterval(rotateTimer);
   if (autoRotate) rotateTimer = setInterval(nextPage, ROTATE_MS);
+}
+
+function updatePauseIndicator() {
+  const dots = document.getElementById('page-dots');
+  if (dots) dots.classList.toggle('paused', !autoRotate);
+  const label = document.getElementById('page-label');
+  if (label) {
+    label.classList.toggle('paused', !autoRotate);
+  }
 }
 
 // --- Clock (rAF-driven) ---
@@ -259,16 +293,51 @@ function init() {
   const grid = document.getElementById('grid');
   for (const id of MACHINES) grid.appendChild(makeTile(id));
 
-  // Dot click handlers.
+  // Dot click/tap: go to page + pause for 2 minutes.
   document.querySelectorAll('.dot').forEach(dot => {
     dot.addEventListener('click', e => {
       e.stopPropagation();
       goToPage(parseInt(dot.dataset.page));
+      pauseRotation(120000); // 2 min pause
     });
   });
 
-  // Click carousel body to advance.
-  document.getElementById('carousel').addEventListener('click', nextPage);
+  // Tap carousel body: toggle pause/resume.
+  const carousel = document.getElementById('carousel');
+  carousel.addEventListener('click', e => {
+    // Only toggle if tap target is the carousel itself or a page, not a dot
+    if (e.target.closest('.dot')) return;
+    if (autoRotate) {
+      pauseRotation(120000); // 2 min pause
+    } else {
+      resumeRotation();
+    }
+  });
+
+  // Swipe left/right on touch devices.
+  let touchStartX = 0;
+  let touchStartY = 0;
+  carousel.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  carousel.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    // Only register horizontal swipes (|dx| > 50, |dx| > |dy|)
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) nextPage(); else prevPage();
+      pauseRotation(120000);
+    }
+  }, { passive: true });
+
+  // Keyboard: left/right arrows navigate, space toggles pause.
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { nextPage(); pauseRotation(120000); }
+    if (e.key === 'ArrowLeft') { prevPage(); pauseRotation(120000); }
+    if (e.key === ' ') { e.preventDefault(); togglePause(); }
+  });
 
   // Start clock.
   tickClock();

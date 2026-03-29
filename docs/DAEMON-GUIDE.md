@@ -167,7 +167,7 @@ Current triage behaviors:
 - **fleet-memory**: Always runs. Notes unhealthy machines for inclusion in the briefing.
 - **librarian**: Always runs (read-only). Notes unhealthy machines for audit focus.
 - **llm-watchdog**: Always runs. No security gate.
-- **fleet-digest**: Always runs. Compiles and emails hourly status regardless of fleet health.
+- **fleet-digest**: No triage gate (interval:60m). Compiles and emails hourly status regardless of fleet health.
 
 ## Supervisor behavior
 

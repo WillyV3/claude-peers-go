@@ -164,10 +164,10 @@ Current triage behaviors:
 - **fleet-scout**: Always runs. Reports URGENT if any machines are degraded/quarantined.
 - **pr-helper**: Refuses to push code if ubuntu-homelab is quarantined.
 - **sync-janitor**: Skips if machine is quarantined (don't touch files on compromised host).
-- **fleet-memory**: Always runs. Notes unhealthy machines for inclusion in the briefing.
+- **fleet-memory**: Skips if no active peers and no recent broker events (no-op guard). Notes unhealthy machines for inclusion in the briefing when it does run.
 - **librarian**: Always runs (read-only). Notes unhealthy machines for audit focus.
 - **llm-watchdog**: Always runs. No security gate.
-- **fleet-digest**: No triage gate (interval:60m). Compiles and emails hourly status regardless of fleet health.
+- **fleet-digest**: Always runs (triage gate is a pass-through). Compiles and emails hourly status regardless of fleet health.
 
 ## Supervisor behavior
 

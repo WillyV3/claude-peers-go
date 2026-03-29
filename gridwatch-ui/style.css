@@ -29,7 +29,7 @@ html, body {
 
 .shell {
   display: grid;
-  grid-template-rows: auto 1fr auto auto;
+  grid-template-rows: auto 1fr 20px 22px;
   height: 100vh;
   padding: 4px 6px;
   gap: 4px;
@@ -171,6 +171,8 @@ html, body {
   border-bottom: 1px solid var(--border);
   padding: 1px 0;
   font-size: 9px;
+  min-height: 16px;
+  flex-shrink: 0;
 }
 
 .ticker-inner {
@@ -199,6 +201,8 @@ html, body {
   padding-top: 2px;
   overflow: hidden;
   flex-wrap: wrap;
+  min-height: 18px;
+  flex-shrink: 0;
 }
 
 .ftr-stats {

@@ -1,0 +1,51 @@
+<group name="claude-peers,">
+  <!-- Expected binary deploy to ~/.local/bin (our deploy path) -->
+  <rule id="100099" level="7">
+    <if_group>syscheck</if_group>
+    <match type="pcre2">claude-peers</match>
+    <match type="pcre2">/\.local/bin/</match>
+    <description>claude-peers binary deployed (expected update): $(file)</description>
+    <group>fim,binary_deploy,</group>
+  </rule>
+
+  <!-- UCAN credential file modified -->
+  <rule id="100100" level="12">
+    <if_group>syscheck</if_group>
+    <match type="pcre2">/\.config/claude-peers/(identity\.pem|token\.jwt|root\.pub)</match>
+    <description>UCAN credential file modified: $(file)</description>
+    <group>fim,credential_change,</group>
+  </rule>
+
+  <!-- Binary tampered in system paths -->
+  <rule id="100101" level="13">
+    <if_group>syscheck</if_group>
+    <match type="pcre2">claude-peers</match>
+    <match type="pcre2">/usr/local/bin/|/usr/bin/</match>
+    <description>claude-peers binary TAMPERED in system path: $(file)</description>
+    <group>fim,binary_tamper,</group>
+  </rule>
+
+  <!-- SSH PRIVATE KEY or authorized_keys modified (NOT known_hosts) -->
+  <rule id="100102" level="10">
+    <if_group>syscheck</if_group>
+    <match type="pcre2">/\.ssh/(id_|authorized_keys|config)</match>
+    <description>SSH key or auth config modified: $(file)</description>
+    <group>fim,ssh_key_change,</group>
+  </rule>
+
+  <!-- Systemd unit file changed -->
+  <rule id="100130" level="9">
+    <if_group>syscheck</if_group>
+    <match type="pcre2">/systemd/</match>
+    <description>Systemd unit file changed: $(file)</description>
+    <group>fim,persistence,</group>
+  </rule>
+
+  <!-- QUARANTINE: credential + binary change on same host -->
+  <rule id="100200" level="15" frequency="2" timeframe="300">
+    <if_matched_group>credential_change</if_matched_group>
+    <same_source_ip />
+    <description>QUARANTINE: credential + binary change on same host</description>
+    <group>quarantine,</group>
+  </rule>
+</group>

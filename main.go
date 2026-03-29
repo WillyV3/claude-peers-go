@@ -80,6 +80,14 @@ func main() {
 		if err := runSecurityWatch(ctx); err != nil {
 			log.Fatal(err)
 		}
+	case "response-daemon":
+		if err := runResponseDaemon(ctx); err != nil {
+			log.Fatal(err)
+		}
+	case "sim-attack":
+		if err := runSimAttack(os.Args[2:]); err != nil {
+			log.Fatal(err)
+		}
 	case "kill-broker":
 		cliKillBroker()
 	default:
@@ -108,7 +116,12 @@ Usage:
   claude-peers wazuh-bridge                     Tail Wazuh alerts and publish to NATS
   claude-peers unquarantine <machine>           Remove quarantine from a machine
   claude-peers security-watch                   Correlate security events and alert
+  claude-peers response-daemon                  Automated incident response (forensics, IP blocks, email)
+  claude-peers sim-attack <scenario> [flags]    Simulate attack scenarios to test detection + response
   claude-peers kill-broker                      Stop the broker daemon
+
+Sim-attack scenarios: brute-force, credential-theft, binary-tamper, rogue-service, lateral-movement, --all
+Sim-attack flags: --target=machine (default: raspdeck), --dry-run
 
 Token roles: peer-session, fleet-read, fleet-write, cli
 

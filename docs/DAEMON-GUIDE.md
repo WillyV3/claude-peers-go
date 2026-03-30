@@ -164,7 +164,7 @@ Current triage behaviors:
 - **fleet-scout**: Always runs. Reports URGENT if any machines are degraded/quarantined.
 - **pr-helper**: Refuses to push code if ubuntu-homelab is quarantined.
 - **sync-janitor**: Skips if machine is quarantined (don't touch files on compromised host).
-- **fleet-memory**: Skips if no active peers and no recent broker events (no-op guard). Notes unhealthy machines for inclusion in the briefing when it does run.
+- **fleet-memory**: Skips if no active peers and no recent broker events (no-op guard). When it does run, the agent still reports unhealthy and absent machines in the generated briefing (see `daemons/fleet-memory/fleet-memory.agent`).
 - **librarian**: Always runs (read-only). Notes unhealthy machines for audit focus.
 - **llm-watchdog**: Always runs. No security gate.
 - **fleet-digest**: Always runs (triage gate is a pass-through). Compiles and emails hourly status regardless of fleet health.
@@ -185,7 +185,7 @@ Current triage behaviors:
 | fleet-scout | 10m | Monitors fleet health across all machines and services |
 | fleet-memory | 10m | Consolidate fleet activity into shared Claude memory |
 | llm-watchdog | 10m | Monitor LLM server health, restart if down, alert on anomalies |
-| pr-helper | 15m | Keep PRs mergeable across GitHub orgs (human-frontier-lab, williavs, WillyV3) |
+| pr-helper | 15m | Keep PRs mergeable across GitHub orgs (Human-Frontier-Labs-Inc, WillyV3) |
 | sync-janitor | 15m | Detect Syncthing conflict files, analyze them, and email a resolution report |
 | fleet-digest | 60m | Hourly fleet digest email -- daemons, security, peers, machine health |
 | librarian | 3h | Audit and update documentation across fleet machines |

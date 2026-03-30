@@ -86,7 +86,7 @@ Manages autonomous agent workflows. Each daemon is defined by:
 | fleet-scout | 10m | Monitors fleet health across all machines and services |
 | fleet-memory | 10m | Consolidate fleet activity into shared Claude memory |
 | llm-watchdog | 10m | Monitor LLM server health, restart if down, alert on anomalies |
-| pr-helper | 15m | Keep PRs mergeable across GitHub orgs (human-frontier-lab, williavs, WillyV3) |
+| pr-helper | 15m | Keep PRs mergeable across GitHub orgs (Human-Frontier-Labs-Inc, WillyV3) |
 | sync-janitor | 15m | Detect Syncthing conflict files, analyze them, and email a resolution report |
 | fleet-digest | 60m | Hourly fleet digest email -- daemons, security, peers, machine health |
 | librarian | 3h | Audit and update documentation across fleet machines |

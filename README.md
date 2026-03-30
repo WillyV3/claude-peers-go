@@ -91,7 +91,7 @@ Manages autonomous agent workflows. Each daemon is defined by:
 | fleet-digest | 60m | Hourly fleet digest email -- daemons, security, peers, machine health |
 | librarian | 3h | Audit and update documentation across fleet machines |
 
-All daemons have EDR-aware triage gates -- they check machine health before running and refuse to operate from quarantined machines.
+Daemons have EDR-aware triage gates. `pr-helper` and `sync-janitor` refuse to run when the local machine is quarantined. `fleet-scout` and `librarian` always run but escalate their output when machines are unhealthy. `fleet-digest` and `llm-watchdog` are unconditional pass-throughs. See [Daemon Guide](docs/DAEMON-GUIDE.md#edr-aware-triage) for full per-daemon triage behavior.
 
 ### Security Watch
 Long-running correlator that subscribes to `fleet.security.>` events and detects:

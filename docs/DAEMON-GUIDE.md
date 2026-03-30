@@ -162,7 +162,7 @@ exit 0
 
 Current triage behaviors:
 - **fleet-scout**: Always runs. Reports URGENT if any machines are degraded/quarantined.
-- **pr-helper**: Refuses to push code if ubuntu-homelab is quarantined. Also skips if no open PRs are found across orgs (Human-Frontier-Labs-Inc, WillyV3).
+- **pr-helper**: Skips entirely if ubuntu-homelab is quarantined (triage exit 1 — daemon does not run). Also skips if no open PRs are found across orgs (Human-Frontier-Labs-Inc, WillyV3).
 - **sync-janitor**: Skips if machine is quarantined (don't touch files on compromised host).
 - **fleet-memory**: Skips if no active peers and no recent broker events (no-op guard). When it does run, the agent still reports unhealthy and absent machines in the generated briefing (see `daemons/fleet-memory/fleet-memory.agent`).
 - **librarian**: Always runs (read-only). Notes unhealthy machines for audit focus.

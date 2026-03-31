@@ -1,50 +1,28 @@
 # claude-peers-go
 
-Peer discovery and messaging for Claude Code instances across machines.
+Peer discovery and messaging between Claude Code sessions.
+
+Run multiple Claude Code instances on the same machine? They can now see each other, send messages, and share context -- automatically.
 
 ## What it does
 
-- Claude Code sessions automatically discover each other across your network
+- Claude Code sessions automatically discover each other
 - Send messages between sessions in real time
-- See what each Claude instance is working on (auto-generated summaries)
-- UCAN-based cryptographic authentication (Ed25519 + JWT delegation chains)
-- NATS JetStream for real-time event streaming (optional, falls back to HTTP polling)
-- Fleet memory: shared markdown state synced across all machines
+- See what each Claude is working on (auto-generated summaries)
+- New sessions start with full context: who's active, what they're doing, recent events
+- Shared memory: Claude writes what happened, the next session reads it
 
 ## Quick Start
-
-### 1. Set up the broker (on your always-on server)
 
 ```bash
 go install github.com/WillyV3/claude-peers-go@latest
 
+# Initialize and start the broker (runs in background)
 claude-peers init broker
-claude-peers broker
+claude-peers broker &
 ```
 
-### 2. Set up each client machine
-
-```bash
-claude-peers init client http://<broker-ip>:7899
-```
-
-Copy `root.pub` from the broker machine to `~/.config/claude-peers/root.pub` on the client.
-
-On the broker, issue a token for the client:
-
-```bash
-claude-peers issue-token /path/to/client-identity.pub peer-session
-```
-
-On the client, save the issued token:
-
-```bash
-claude-peers save-token <jwt>
-```
-
-### 3. Add to Claude Code
-
-Add to your `~/.claude/settings.json`:
+Add to your `~/.claude.json` (or `~/.claude/settings.json`):
 
 ```json
 {
@@ -57,98 +35,113 @@ Add to your `~/.claude/settings.json`:
 }
 ```
 
-Claude Code sessions will now automatically register with the broker, discover peers, and exchange messages.
+That's it. Open multiple Claude Code sessions -- they'll discover each other automatically.
+
+## How it works
+
+A lightweight broker process runs on your machine. Each Claude Code session connects to it via an MCP server. The broker tracks who's active, routes messages, and stores shared memory.
+
+```
+Claude Code (session 1) ──┐
+Claude Code (session 2) ──┼── broker (localhost:7899) ── SQLite
+Claude Code (session 3) ──┘
+```
+
+Each session gets:
+- **Auto-naming** from git context: `my-project@main` instead of `session-47`
+- **Context injection** at start: knows who's online and what they're doing
+- **Message delivery** via channel notifications -- Claude responds automatically
+- **Shared memory** that persists between sessions
 
 ## Features
 
-### Fleet Context Injection
-When a Claude Code session starts, it automatically receives context about the fleet: who's online, what they're working on, recent events, and shared memory. Claude starts every session aware of the fleet without you asking.
+### Context Injection
+When a session starts, it receives a snapshot of the current state: active peers, recent events, shared memory. Claude starts every session aware of what's happening without you asking.
 
-### Smart Peer Naming
-Peers are auto-named from git context: `my-project@main` instead of cryptic `machine:tty` identifiers. Override with the `set_name` MCP tool if you want a custom name.
+### Smart Naming
+Peers are auto-named from git context: `my-project@main`, `api-server@feature/auth`. Override anytime with the `set_name` MCP tool.
 
-### Cross-Session Messaging
-Send messages between Claude sessions across machines. Messages are delivered instantly via channel notifications -- Claude responds automatically.
+### Messaging
+Send messages between Claude sessions. Messages are delivered instantly via channel notifications. Useful for coordinating work across multiple sessions.
 
-### Fleet Memory
-Shared markdown state synced across all machines. Claude writes what happened, the next session reads it automatically.
+### Shared Memory
+Markdown-based shared state. One session writes context, the next session reads it. Survives session restarts.
 
-## CLI Commands
+## Multi-Machine Setup (Advanced)
 
-```
-claude-peers init <role> [url]              Generate config (broker or client)
-claude-peers config                         Show current config
-claude-peers broker                         Start the broker daemon
-claude-peers server                         Start MCP stdio server (used by Claude Code)
-claude-peers status                         Show broker status and all peers
-claude-peers peers                          List all peers
-claude-peers send <id> <msg>                Send a message to a peer
-claude-peers issue-token <pub-path> <role>  Issue a UCAN token for a machine
-claude-peers save-token <jwt>               Save a UCAN token locally
-claude-peers refresh-token                  Renew current token
-claude-peers mint-root                      Mint a new root token
-claude-peers dream                          Snapshot fleet state to Claude memory
-claude-peers dream-watch                    Watch fleet via NATS and keep memory fresh
-claude-peers generate-nkey                  Generate a NATS NKey pair
-claude-peers kill-broker                    Stop the broker daemon
-claude-peers reauth-fleet                   Re-issue tokens for fleet machines
+For running across multiple machines (e.g., laptop + server):
+
+```bash
+# On the broker machine
+claude-peers init broker
+claude-peers broker
+
+# On each remote machine
+claude-peers init client http://<broker-ip>:7899
 ```
 
-## Token Roles
+Then issue tokens for each machine:
 
-| Role | Capabilities |
-|------|-------------|
-| `peer-session` | Register, heartbeat, list peers, send/poll messages, read/write memory |
-| `fleet-read` | List peers, read events, read memory |
-| `fleet-write` | List peers, read events, read/write memory |
-| `cli` | List peers, send messages, read events |
+```bash
+# On the broker
+claude-peers issue-token /path/to/remote-identity.pub peer-session
+
+# On the remote machine
+claude-peers save-token <jwt>
+```
+
+Optionally add [NATS JetStream](https://nats.io/) for real-time event streaming across machines.
+
+## CLI Reference
+
+```
+claude-peers init broker                   Set up broker (generates keys + token)
+claude-peers init client <broker-url>      Connect to a remote broker
+claude-peers broker                        Start the broker
+claude-peers server                        Start MCP server (used by Claude Code)
+claude-peers status                        Show broker status and peers
+claude-peers peers                         List all peers
+claude-peers send <id> <msg>               Send a message to a peer
+claude-peers dream                         Snapshot state to shared memory
+claude-peers dream-watch                   Watch events and keep memory fresh
+claude-peers kill-broker                   Stop the broker
+```
+
+### Token Management
+
+```
+claude-peers issue-token <pub> <role>      Issue a token for a machine
+claude-peers save-token <jwt>              Save a token locally
+claude-peers refresh-token                 Renew an expiring token
+claude-peers mint-root                     Mint a new root token
+```
 
 ## Configuration
 
-Config file: `~/.config/claude-peers/config.json`
-
-Environment variable overrides:
+Config: `~/.config/claude-peers/config.json`
 
 | Variable | Description |
 |----------|-------------|
-| `CLAUDE_PEERS_BROKER_URL` | Broker HTTP endpoint |
-| `CLAUDE_PEERS_LISTEN` | Broker bind address |
+| `CLAUDE_PEERS_BROKER_URL` | Broker endpoint (default: `http://127.0.0.1:7899`) |
 | `CLAUDE_PEERS_MACHINE` | Machine name |
-| `CLAUDE_PEERS_DB` | SQLite database path |
-| `CLAUDE_PEERS_NATS` | NATS server URL |
-| `CLAUDE_PEERS_NATS_TOKEN` | NATS auth token |
-| `CLAUDE_PEERS_NATS_NKEY` | Path to NATS NKey seed |
-| `CLAUDE_PEERS_TOKEN` | UCAN auth token |
-| `CLAUDE_PEERS_LLM_URL` | LLM endpoint for auto-summaries |
-| `CLAUDE_PEERS_LLM_API_KEY` | LLM API key |
+| `CLAUDE_PEERS_NATS` | NATS server URL (optional) |
+| `CLAUDE_PEERS_LLM_URL` | LLM endpoint for auto-summaries (optional) |
 
-## Broker API
+## Auth
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/health` | None | Health check |
-| POST | `/challenge` | None | Broker identity verification |
-| POST | `/refresh-token` | Bearer | Refresh expiring token |
-| POST | `/register` | `peer/register` | Register a peer |
-| POST | `/heartbeat` | `peer/heartbeat` | Keep-alive |
-| POST | `/set-summary` | `peer/set-summary` | Update peer summary |
-| POST | `/set-name` | `peer/set-summary` | Update peer name |
-| POST | `/list-peers` | `peer/list` | List peers |
-| POST | `/send-message` | `msg/send` | Send message |
-| POST | `/poll-messages` | `msg/poll` | Poll messages (marks delivered) |
-| POST | `/peek-messages` | `msg/poll` | Peek messages (non-destructive) |
-| POST | `/ack-message` | `msg/ack` | Acknowledge message |
-| POST | `/unregister` | `peer/unregister` | Unregister peer |
-| GET | `/events` | `events/read` | Recent events |
-| GET | `/fleet-memory` | `memory/read` | Read fleet memory |
-| POST | `/fleet-memory` | `memory/write` | Write fleet memory |
+Uses [UCAN](https://ucan.xyz/) (User Controlled Authorization Networks) -- Ed25519 key pairs with JWT delegation chains. The broker generates a root key at init. Tokens are scoped by capability:
+
+| Role | Can do |
+|------|--------|
+| `peer-session` | Register, message, read/write memory |
+| `fleet-read` | Read-only: list peers, events, memory |
+| `cli` | List peers, send messages, read events |
 
 ## Dependencies
 
-- [golang-jwt/jwt](https://github.com/golang-jwt/jwt) - Ed25519 JWT tokens
-- [nats-io/nats.go](https://github.com/nats-io/nats.go) - NATS JetStream (optional)
-- [nats-io/nkeys](https://github.com/nats-io/nkeys) - NATS NKey authentication
-- [modernc.org/sqlite](https://modernc.org/sqlite) - Pure-Go SQLite (no CGo)
+- [golang-jwt/jwt](https://github.com/golang-jwt/jwt) -- Ed25519 JWT
+- [modernc.org/sqlite](https://modernc.org/sqlite) -- Pure-Go SQLite
+- [nats-io/nats.go](https://github.com/nats-io/nats.go) -- NATS JetStream (optional)
 
 ## License
 

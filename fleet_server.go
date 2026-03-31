@@ -171,13 +171,9 @@ func runServer(ctx context.Context) error {
 	branch := gitBranch(cwd)
 	project := autoProject(cwd, root)
 
-	// New naming: repo@branch if in git, else dir-basename
-	name := project
-	if branch != "" && name != "" {
-		name = name + "@" + branch
-	}
-	if name == "" {
-		name = filepath.Base(cwd)
+	name := autoName(cfg.MachineName, project, tty)
+	if branch != "" && project != "" {
+		name = project + "@" + branch
 	}
 
 	logMCP("Name: %s", name)

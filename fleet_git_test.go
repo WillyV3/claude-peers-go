@@ -38,8 +38,15 @@ func TestAutoNameWithProject(t *testing.T) {
 
 func TestAutoNameWithoutProject(t *testing.T) {
 	got := autoName("machine", "", "")
-	if got != "unnamed" {
-		t.Fatalf("expected unnamed, got %s", got)
+	if got != "machine" {
+		t.Fatalf("expected machine, got %s", got)
+	}
+}
+
+func TestAutoNameWithTTY(t *testing.T) {
+	got := autoName("laptop", "", "pts/3")
+	if got != "laptop:3" {
+		t.Fatalf("expected laptop:3, got %s", got)
 	}
 }
 

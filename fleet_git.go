@@ -120,11 +120,17 @@ func filterEmpty(ss []string) []string {
 
 // autoName generates a readable peer name: repo@branch if in git, else dir-basename.
 // Machine name stays as separate metadata in the `machine` field.
-func autoName(_ string, project, _ string) string {
-	if project == "" {
-		return "unnamed"
+func autoName(machine string, project, tty string) string {
+	if project != "" {
+		return project
 	}
-	return project
+	// No git, no meaningful directory -- use machine:tty as fallback.
+	// The summary (generated separately) provides the real identity.
+	if tty != "" {
+		parts := strings.Split(tty, "/")
+		return machine + ":" + parts[len(parts)-1]
+	}
+	return machine
 }
 
 func generateSummary(cwd, root, branch string, files []string) string {

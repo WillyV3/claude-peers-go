@@ -59,6 +59,20 @@ Add to your `~/.claude/settings.json`:
 
 Claude Code sessions will now automatically register with the broker, discover peers, and exchange messages.
 
+## Features
+
+### Fleet Context Injection
+When a Claude Code session starts, it automatically receives context about the fleet: who's online, what they're working on, recent events, and shared memory. Claude starts every session aware of the fleet without you asking.
+
+### Smart Peer Naming
+Peers are auto-named from git context: `my-project@main` instead of cryptic `machine:tty` identifiers. Override with the `set_name` MCP tool if you want a custom name.
+
+### Cross-Session Messaging
+Send messages between Claude sessions across machines. Messages are delivered instantly via channel notifications -- Claude responds automatically.
+
+### Fleet Memory
+Shared markdown state synced across all machines. Claude writes what happened, the next session reads it automatically.
+
 ## CLI Commands
 
 ```

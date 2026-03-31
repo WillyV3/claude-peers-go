@@ -156,6 +156,20 @@ var mcpTools = []map[string]any{
 		},
 	},
 	{
+		"name":        "set_name",
+		"description": "Set a display name for THIS Claude Code session on the peer network. This is how other sessions and the dashboard will identify you. Use this when the user asks you to name yourself or identify as something specific (e.g. 'call yourself Bob'). Do NOT write names to memory -- use this tool instead.",
+		"inputSchema": map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"name": map[string]any{
+					"type":        "string",
+					"description": "The display name for this session (e.g. 'Bob', 'auth-debugger', 'Corn-helper')",
+				},
+			},
+			"required": []string{"name"},
+		},
+	},
+	{
 		"name":        "check_messages",
 		"description": "Manually check for new messages from other Claude Code instances. Messages are normally pushed automatically via channel notifications, but you can use this as a fallback.",
 		"inputSchema": map[string]any{
@@ -179,6 +193,7 @@ Available tools:
 - list_peers: Discover other Claude Code instances (scope: all/machine/directory/repo)
 - send_message: Send a message to another instance by ID
 - set_summary: Set a 1-2 sentence summary of what you're working on (visible to other peers)
+- set_name: Set YOUR display name on the network (use when user says "call yourself X" -- do NOT write to memory instead)
 - check_messages: Check for new messages from other Claude Code instances -- CALL THIS ON EVERY USER PROMPT`
 
 func handleInitialize(id any, t *MCPTransport) {

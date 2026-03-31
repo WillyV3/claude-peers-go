@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"cmp"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -127,11 +128,62 @@ func autoName(_ string, project, _ string) string {
 }
 
 func generateSummary(cwd, root, branch string, files []string) string {
-	// Try LiteLLM on the broker machine first, then fall back to Anthropic API.
+	var parts []string
+	parts = append(parts, "Dir: "+cwd)
+	if root != "" {
+		parts = append(parts, "Repo: "+filepath.Base(root))
+	}
+	if branch != "" {
+		parts = append(parts, "Branch: "+branch)
+	}
+	if len(files) > 0 {
+		parts = append(parts, "Recent files: "+strings.Join(files, ", "))
+	}
+
+	prompt := "One sentence: what is this developer working on? Be specific. No preamble.\n\n" + strings.Join(parts, "\n")
+
+	// Use the claude CLI directly -- everyone running claude-peers already has it.
+	// Falls back to LLM API if claude CLI is not available.
+	if summary := claudeCLISummary(prompt); summary != "" {
+		return summary
+	}
+	return llmAPISummary(prompt)
+}
+
+func claudeCLISummary(prompt string) string {
+	claudeBin, err := exec.LookPath("claude")
+	if err != nil {
+		return ""
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	// --bare: skip hooks, LSP, plugins, CLAUDE.md -- just raw LLM call
+	// --model haiku: cheapest/fastest model
+	// -p: non-interactive, print and exit
+	// --no-session-persistence: don't save this throwaway call
+	cmd := exec.CommandContext(ctx, claudeBin,
+		"-p", prompt,
+		"--model", "haiku",
+		"--bare",
+		"--no-session-persistence",
+	)
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+
+	result := strings.TrimSpace(string(out))
+	if len(result) > 120 {
+		result = result[:117] + "..."
+	}
+	return result
+}
+
+func llmAPISummary(prompt string) string {
 	apiKey := cmp.Or(
 		os.Getenv("OPENAI_API_KEY"),
-		os.Getenv("LITELLM_API_KEY"),
-		os.Getenv("ANTHROPIC_AUTH_TOKEN"),
 		os.Getenv("ANTHROPIC_API_KEY"),
 		readClaudeSettingsKey(),
 		cfg.LLMAPIKey,
@@ -145,24 +197,12 @@ func generateSummary(cwd, root, branch string, files []string) string {
 		return ""
 	}
 
-	var parts []string
-	parts = append(parts, "Dir: "+cwd)
-	if root != "" {
-		parts = append(parts, "Repo: "+filepath.Base(root))
-	}
-	if branch != "" {
-		parts = append(parts, "Branch: "+branch)
-	}
-	if len(files) > 0 {
-		parts = append(parts, "Recent files: "+strings.Join(files, ", "))
-	}
-
 	model := cmp.Or(os.Getenv("CLAUDE_PEERS_SUMMARY_MODEL"), cfg.LLMModel)
 	body, _ := json.Marshal(map[string]any{
 		"model": model,
 		"messages": []map[string]string{
 			{"role": "system", "content": "One sentence: what is this developer doing right now? Be specific. No preamble."},
-			{"role": "user", "content": strings.Join(parts, "\n")},
+			{"role": "user", "content": prompt},
 		},
 		"max_tokens": 60,
 	})

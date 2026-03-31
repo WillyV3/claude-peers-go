@@ -127,8 +127,14 @@ Config: `~/.config/claude-peers/config.json`
 |----------|-------------|
 | `CLAUDE_PEERS_BROKER_URL` | Broker endpoint (default: `http://127.0.0.1:7899`) |
 | `CLAUDE_PEERS_MACHINE` | Machine name |
+| `CLAUDE_PEERS_LISTEN` | Address the broker binds to (default: `127.0.0.1:7899`) |
+| `CLAUDE_PEERS_DB` | SQLite database path |
 | `CLAUDE_PEERS_NATS` | NATS server URL (optional) |
+| `CLAUDE_PEERS_NATS_TOKEN` | NATS auth token (optional) |
+| `CLAUDE_PEERS_NATS_NKEY` | NATS NKey seed file path (optional, takes priority over NATS_TOKEN) |
 | `CLAUDE_PEERS_LLM_URL` | LLM endpoint for auto-summaries (optional) |
+| `CLAUDE_PEERS_LLM_MODEL` | LLM model for auto-summaries (default: `claude-haiku`) |
+| `CLAUDE_PEERS_LLM_API_KEY` | API key for LLM endpoint (optional) |
 
 ## Auth
 

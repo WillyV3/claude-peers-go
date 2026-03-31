@@ -156,6 +156,20 @@ var mcpTools = []map[string]any{
 		},
 	},
 	{
+		"name":        "set_name",
+		"description": "Set a custom display name for this Claude Code session. Overrides the auto-generated git-context name (e.g. 'my-project@main').",
+		"inputSchema": map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"name": map[string]any{
+					"type":        "string",
+					"description": "A short display name for this session (e.g. 'api-refactor', 'debug-session')",
+				},
+			},
+			"required": []string{"name"},
+		},
+	},
+	{
 		"name":        "check_messages",
 		"description": "Manually check for new messages from other Claude Code instances. Messages are normally pushed automatically via channel notifications, but you can use this as a fallback.",
 		"inputSchema": map[string]any{
@@ -179,6 +193,7 @@ Available tools:
 - list_peers: Discover other Claude Code instances (scope: all/machine/directory/repo)
 - send_message: Send a message to another instance by ID
 - set_summary: Set a 1-2 sentence summary of what you're working on (visible to other peers)
+- set_name: Override the auto-generated session name with a custom display name
 - check_messages: Check for new messages from other Claude Code instances -- CALL THIS ON EVERY USER PROMPT`
 
 func handleInitialize(id any, t *MCPTransport) {

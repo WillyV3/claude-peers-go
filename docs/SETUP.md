@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Go 1.22+ (uses `range` over integers, `sync.WaitGroup.Go`, `strings.SplitSeq`)
+- Go 1.25+ (uses `strings.SplitSeq`; `go.mod` requires go 1.25.7)
 - NATS server (optional, for real-time event streaming)
 
 ## Single-Machine Setup (Simplest)

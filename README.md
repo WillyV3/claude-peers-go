@@ -135,6 +135,7 @@ Uses [UCAN](https://ucan.xyz/) (User Controlled Authorization Networks) -- Ed255
 |------|--------|
 | `peer-session` | Register, message, read/write memory |
 | `fleet-read` | Read-only: list peers, events, memory |
+| `fleet-write` | Read/write memory, list peers, read events |
 | `cli` | List peers, send messages, read events |
 
 ## Dependencies

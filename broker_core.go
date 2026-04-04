@@ -302,10 +302,25 @@ func (b *Broker) listPeers(req ListPeersRequest) []Peer {
 }
 
 func (b *Broker) sendMessage(req SendMessageRequest) SendMessageResponse {
+	// Try exact ID match first.
 	var exists bool
 	b.db.QueryRow("SELECT EXISTS(SELECT 1 FROM peers WHERE id = ?)", req.ToID).Scan(&exists)
+
+	// If ID not found, try resolving as a display name (handles ID rotation).
 	if !exists {
-		return SendMessageResponse{OK: false, Error: fmt.Sprintf("Peer %s not found", req.ToID)}
+		var resolvedID string
+		err := b.db.QueryRow(
+			"SELECT id FROM peers WHERE name = ? ORDER BY last_seen DESC LIMIT 1",
+			req.ToID,
+		).Scan(&resolvedID)
+		if err == nil && resolvedID != "" {
+			req.ToID = resolvedID
+			exists = true
+		}
+	}
+
+	if !exists {
+		return SendMessageResponse{OK: false, Error: fmt.Sprintf("Peer %s not found (tried as ID and name)", req.ToID)}
 	}
 	b.db.Exec(
 		"INSERT INTO messages (from_id, to_id, text, sent_at, delivered) VALUES (?, ?, ?, ?, 0)",

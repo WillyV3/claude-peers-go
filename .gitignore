@@ -1,5 +1,10 @@
 claude-peers
 claude-peers-go
+claude-peers-linux-amd64
+claude-peers-linux-arm64
+claude-peers-darwin-arm64
+sontara-lattice
 *.db
 *.db-wal
 *.db-shm
+*.log

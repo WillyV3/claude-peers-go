@@ -54,8 +54,8 @@ No fallback to autoName. No dir-basename guess. No `machine:tty` construction. I
 Second session trying to register with an agent name that's already held by a live session gets a **hard 409**:
 ```
 agent 'caretaker' already held by session a4f2b1c3
-  machine: omarchy
-  cwd:     /home/willy/projects/raspdeck-learning/builder-area/devices/ghostbox
+  machine: host-alpha
+  cwd:     /home/user/projects/edge-gateway
   started: 2026-04-08T14:32:11Z
 
 kill that session or pick a different agent name.

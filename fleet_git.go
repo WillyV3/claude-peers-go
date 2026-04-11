@@ -126,7 +126,8 @@ func filterEmpty(ss []string) []string {
 // Resolution order:
 //  1. agentNameOverride (set via --as flag, see main.go)
 //  2. CLAUDE_PEERS_AGENT env var
-//  3. .claude-peers-agent file in cwd (trimmed, first line only)
+//  3. .claude-peers-agent file found by walking up from cwd toward $HOME
+//     (first non-empty first-line wins; see findAgentFile for scope rules)
 func resolveAgentName(cwd string) string {
 	if agentNameOverride != "" {
 		return strings.TrimSpace(agentNameOverride)
@@ -134,11 +135,64 @@ func resolveAgentName(cwd string) string {
 	if env := os.Getenv("CLAUDE_PEERS_AGENT"); env != "" {
 		return strings.TrimSpace(env)
 	}
-	if data, err := os.ReadFile(filepath.Join(cwd, ".claude-peers-agent")); err == nil {
-		line := strings.SplitN(strings.TrimSpace(string(data)), "\n", 2)[0]
-		return strings.TrimSpace(line)
+	home, _ := os.UserHomeDir()
+	return findAgentFile(cwd, home)
+}
+
+// findAgentFile walks up from cwd looking for a .claude-peers-agent file.
+// Returns the first non-empty first-line name found, or "" if none.
+//
+// Scope rules:
+//   - If cwd is inside home, walk up until home itself (inclusive) and stop.
+//     Refusing to ascend above $HOME prevents a stray file in /etc, /tmp, or
+//     any system directory from silently claiming identity for a user session.
+//   - If cwd is outside home, only check cwd itself -- no walk-up. A session
+//     launched from /tmp or /var is intentional and should not pick up an
+//     identity file from a sibling or parent directory.
+//
+// Extracted from resolveAgentName so the walk-up can be exercised in tests
+// without manipulating the process's real $HOME.
+func findAgentFile(cwd, home string) string {
+	dir, err := filepath.Abs(cwd)
+	if err != nil {
+		dir = cwd
 	}
-	return ""
+	absHome := ""
+	if home != "" {
+		if h, err := filepath.Abs(home); err == nil {
+			absHome = h
+		}
+	}
+	startedInsideHome := absHome != "" && isInside(dir, absHome)
+	for {
+		path := filepath.Join(dir, ".claude-peers-agent")
+		if data, err := os.ReadFile(path); err == nil {
+			line := strings.SplitN(strings.TrimSpace(string(data)), "\n", 2)[0]
+			if name := strings.TrimSpace(line); name != "" {
+				return name
+			}
+		}
+		if !startedInsideHome {
+			return ""
+		}
+		if dir == absHome {
+			return ""
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return ""
+		}
+		dir = parent
+	}
+}
+
+// isInside reports whether p is equal to or a descendant of root.
+func isInside(p, root string) bool {
+	rel, err := filepath.Rel(root, p)
+	if err != nil {
+		return false
+	}
+	return rel == "." || !strings.HasPrefix(rel, "..")
 }
 
 // agentNameOverride is set by main.go from the --as CLI flag, if provided.

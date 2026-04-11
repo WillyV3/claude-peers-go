@@ -202,8 +202,7 @@ func runServer(ctx context.Context) error {
 		logMCP("Auto-summary timed out")
 	}
 
-	var reg RegisterResponse
-	if err := brokerFetch("/register", RegisterRequest{
+	registerReq := RegisterRequest{
 		AgentName: agentName,
 		PID:       os.Getpid(),
 		Machine:   cfg.MachineName,
@@ -213,15 +212,47 @@ func runServer(ctx context.Context) error {
 		Project:   project,
 		Branch:    branch,
 		Summary:   initialSummary,
-	}, &reg); err != nil {
+	}
+
+	var reg RegisterResponse
+	if err := brokerFetch("/register", registerReq, &reg); err != nil {
 		return fmt.Errorf("register: %w", err)
 	}
+
+	// T6: if the configured agent name collides with a live session, fall back
+	// to ephemeral registration instead of aborting the MCP server. Pre-T6
+	// behaviour was to return an error and exit -- which claude-code surfaces
+	// as "MCP failed to connect" with no context, because the detailed
+	// collision error lives in subprocess stderr. That's a silent failure
+	// from the user's POV and the wrong trade. An ephemeral fallback keeps
+	// the session visible and messageable by session ID, logs the collision
+	// loudly to stderr, and lets the user resolve it at their leisure.
+	//
+	// We only retry once and only when we actually sent a non-empty
+	// AgentName. If the broker rejects an ephemeral register, that's a real
+	// failure and still bubbles up.
+	if !reg.OK && agentName != "" {
+		logMCP("WARNING: configured agent name %q is already held by session %s on %s (cwd: %s, since: %s). "+
+			"Falling back to ephemeral registration -- this session will be visible in list_peers and "+
+			"addressable by session ID, but not by the configured name. Resolve the collision by killing "+
+			"the holder, picking a different name in .claude-peers-agent / CLAUDE_PEERS_AGENT / --as, or "+
+			"waiting for the holder to exit (names free 60s after stale sweep).",
+			agentName, reg.HeldBySession, reg.HeldByMachine, reg.HeldByCWD, reg.HeldBySince)
+		agentName = ""
+		registerReq.AgentName = ""
+		if err := brokerFetch("/register", registerReq, &reg); err != nil {
+			return fmt.Errorf("register (ephemeral fallback after %q collision): %w", registerReq.AgentName, err)
+		}
+	}
 	if !reg.OK {
-		return fmt.Errorf("register failed: %s\n  held by session %s on %s (cwd: %s)\n  started: %s\n  kill that session or pick a different agent name",
-			reg.Error, reg.HeldBySession, reg.HeldByMachine, reg.HeldByCWD, reg.HeldBySince)
+		return fmt.Errorf("register failed: %s", reg.Error)
 	}
 	myID := reg.ID
-	logMCP("Registered as %s (session %s)", agentName, myID)
+	if agentName != "" {
+		logMCP("Registered as %s (session %s)", agentName, myID)
+	} else {
+		logMCP("Registered as <ephemeral> (session %s)", myID)
+	}
 
 	// Fetch fleet memory from broker and write locally.
 	go syncFleetMemory()

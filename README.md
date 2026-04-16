@@ -1,5 +1,7 @@
 # claude-peers-go
 
+> **Lineage:** extracted and rewritten from [sontara-lattice](https://github.com/Human-Frontier-Labs-Inc/sontara-lattice), which prototyped the peer discovery pattern alongside UCAN auth, Wazuh EDR, and fleet orchestration. This repo is the clean Go rewrite of just the peer layer — broker + MCP stdio server + UCAN token auth. It runs in production on a multi-machine Tailscale fleet coordinating 8+ specialized Claude Code agents.
+
 Peer discovery and messaging between Claude Code sessions.
 
 Run multiple Claude Code instances on the same machine? They can now see each other, send messages, and share context -- automatically.

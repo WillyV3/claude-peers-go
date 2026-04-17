@@ -1,0 +1,78 @@
+name: Release binaries
+
+# Fires only on version tags (e.g. v0.1.0, v1.2.3). Does not run on regular
+# pushes to main -- so adding this workflow is a no-op for day-to-day work.
+# Creates a GitHub Release and attaches one binary per supported platform.
+# The claude-peers plugin (in human-frontier-labs-marketplace) downloads
+# these binaries on first use via its bootstrap.sh.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          out="claude-peers-${{ matrix.goos }}-${{ matrix.goarch }}"
+          go build -trimpath -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" -o "${out}" .
+          sha256sum "${out}" > "${out}.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            claude-peers-${{ matrix.goos }}-${{ matrix.goarch }}
+            claude-peers-${{ matrix.goos }}-${{ matrix.goarch }}.sha256
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false

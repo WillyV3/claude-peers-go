@@ -42,6 +42,76 @@ func brokerFetch(path string, body any, result any) error {
 	return cliFetch(path, body, result)
 }
 
+// SessionState is the shape of ~/.cache/claude-peers/current-<ppid>.json.
+// Written by the MCP server on successful registration, removed on graceful
+// exit. A SessionStart hook in the parent claude-code process reads the file
+// keyed by its own PID ($$) to answer "am I on the peer network, as what,
+// and did T6 ephemeral-fallback fire?" without hitting the broker.
+//
+// ConfiguredAgentName preserves what resolveAgentName returned before T6's
+// collision fallback zeros agentName. If ConfiguredAgentName != "" but
+// AgentName == "" and EphemeralFallback is true, the session is running
+// ephemeral BECAUSE the configured name collided with another holder --
+// the hook can surface a targeted warning ("expected X, got ephemeral").
+type SessionState struct {
+	SessionID           string `json:"session_id"`
+	AgentName           string `json:"agent_name"`
+	ConfiguredAgentName string `json:"configured_agent_name"`
+	EphemeralFallback   bool   `json:"ephemeral_fallback"`
+	CWD                 string `json:"cwd"`
+	Machine             string `json:"machine"`
+	PID                 int    `json:"pid"`
+	ParentPID           int    `json:"parent_pid"`
+	RegisteredAt        string `json:"registered_at"`
+}
+
+// sessionStateDir returns the directory where session state files live,
+// honoring XDG_CACHE_HOME if set, otherwise ~/.cache/claude-peers.
+func sessionStateDir() string {
+	if xdg := os.Getenv("XDG_CACHE_HOME"); xdg != "" {
+		return filepath.Join(xdg, "claude-peers")
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(home, ".cache", "claude-peers")
+}
+
+// writeSessionStateFile atomically writes the session state to
+// current-<ppid>.json in the cache dir. Returns the path on success, or
+// "" on failure (logged, non-fatal -- state file is best-effort). Atomic
+// write = temp file + rename, so a hook reading mid-write never sees a
+// partially-written file.
+func writeSessionStateFile(ppid int, state SessionState) string {
+	dir := sessionStateDir()
+	if dir == "" {
+		logMCP("Session state: could not resolve cache dir (no $HOME?); skipping")
+		return ""
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		logMCP("Session state: mkdir %s: %v", dir, err)
+		return ""
+	}
+	path := filepath.Join(dir, fmt.Sprintf("current-%d.json", ppid))
+	tmp := path + ".tmp"
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		logMCP("Session state: marshal: %v", err)
+		return ""
+	}
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+		logMCP("Session state: write %s: %v", tmp, err)
+		return ""
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		logMCP("Session state: rename %s -> %s: %v", tmp, path, err)
+		os.Remove(tmp)
+		return ""
+	}
+	return path
+}
+
 func isBrokerAlive() bool {
 	client := http.Client{Timeout: 2 * time.Second}
 	resp, err := client.Get(cfg.BrokerURL + "/health") // /health is always public
@@ -202,6 +272,13 @@ func runServer(ctx context.Context) error {
 		logMCP("Auto-summary timed out")
 	}
 
+	// Preserve the configured agent name before T6 fallback may zero it on
+	// collision. The session state file records both the original and the
+	// resolved name so a SessionStart hook in the parent (claude-code) can
+	// warn the user when "you asked for X, got ephemeral because X is held
+	// by another live session".
+	configuredAgentName := agentName
+
 	registerReq := RegisterRequest{
 		AgentName: agentName,
 		PID:       os.Getpid(),
@@ -254,6 +331,27 @@ func runServer(ctx context.Context) error {
 		logMCP("Registered as <ephemeral> (session %s)", myID)
 	}
 
+	// T8: write a session state file keyed by the parent PID (claude-code
+	// itself). A SessionStart hook in claude-code can read ~/.cache/claude-peers/
+	// current-<ppid>.json to answer "am I registered, and as what" without
+	// hitting the broker, and warn the user when T6 ephemeral-fallback fired
+	// (configured_agent_name != agent_name).
+	ppid := os.Getppid()
+	sessionStatePath := writeSessionStateFile(ppid, SessionState{
+		SessionID:           myID,
+		AgentName:           agentName,
+		ConfiguredAgentName: configuredAgentName,
+		EphemeralFallback:   configuredAgentName != "" && agentName == "",
+		CWD:                 cwd,
+		Machine:             cfg.MachineName,
+		PID:                 os.Getpid(),
+		ParentPID:           ppid,
+		RegisteredAt:        nowISO(),
+	})
+	if sessionStatePath != "" {
+		logMCP("Session state: %s", sessionStatePath)
+	}
+
 	// Fetch fleet memory from broker and write locally.
 	go syncFleetMemory()
 
@@ -284,6 +382,9 @@ func runServer(ctx context.Context) error {
 	defer func() {
 		brokerFetch("/unregister", UnregisterRequest{ID: myID}, nil)
 		logMCP("Unregistered from broker")
+		if sessionStatePath != "" {
+			os.Remove(sessionStatePath)
+		}
 	}()
 
 	var wg sync.WaitGroup

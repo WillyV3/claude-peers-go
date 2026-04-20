@@ -133,7 +133,7 @@ export CLAUDE_PEERS_LLM_URL=http://your-llm:4000/v1
 export CLAUDE_PEERS_LLM_API_KEY=your-key
 ```
 
-The summary model defaults to `claude-haiku` and can be overridden with `CLAUDE_PEERS_SUMMARY_MODEL`.
+The summary model defaults to `claude-haiku` and can be overridden with `CLAUDE_PEERS_LLM_MODEL`.
 
 ## Troubleshooting
 

@@ -103,6 +103,7 @@ Optionally add [NATS JetStream](https://nats.io/) for real-time event streaming 
 ```
 claude-peers init broker                   Set up broker (generates keys + token)
 claude-peers init client <broker-url>      Connect to a remote broker
+claude-peers config                        Show current config
 claude-peers broker                        Start the broker
 claude-peers server                        Start MCP server (used by Claude Code)
 claude-peers status                        Show broker status and peers
@@ -110,6 +111,8 @@ claude-peers peers                         List all peers
 claude-peers send <id> <msg>               Send a message to a peer
 claude-peers dream                         Snapshot state to shared memory
 claude-peers dream-watch                   Watch events and keep memory fresh
+claude-peers generate-nkey                 Generate a NATS NKey pair for per-machine auth
+claude-peers reauth-fleet                  Re-issue tokens for all fleet machines via SSH
 claude-peers kill-broker                   Stop the broker
 ```
 
@@ -150,6 +153,7 @@ Uses [UCAN](https://ucan.xyz/) (User Controlled Authorization Networks) -- Ed255
 |------|--------|
 | `peer-session` | Register, message, read/write memory |
 | `fleet-read` | Read-only: list peers, events, memory |
+| `fleet-write` | Read peers/events, read/write memory |
 | `cli` | List peers, send messages, read events |
 
 ## Dependencies

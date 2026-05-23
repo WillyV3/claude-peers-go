@@ -534,9 +534,25 @@ func runServer(ctx context.Context) error {
 		}
 	})
 
+	// T14: proactive rebind after sustained network failure. Pre-T14, transport
+	// errors on /heartbeat were silently retried -- correct for brief network
+	// blips, but if the failures span longer than stale_timeout (e.g. a Mac
+	// sleep/wake event where the broker swept us during sleep AND the network
+	// stack is slow to come back post-wake), the heartbeat never succeeds, the
+	// unknown_session signal never fires, and the T10 reactive rebind never
+	// runs -- the session stays dead until the user manually runs /mcp.
+	// We track consecutive transport failures and proactively rebind once they
+	// cross the stale-cutoff window, then reset the counter so we don't storm
+	// the broker.
+	staleCutoff := time.Duration(cfg.StaleTimeout) * time.Second
+	if staleCutoff <= 0 {
+		staleCutoff = 300 * time.Second
+	}
+
 	wg.Go(func() {
 		ticker := time.NewTicker(heartbeatInterval)
 		defer ticker.Stop()
+		var consecutiveFailures int
 		for {
 			select {
 			case <-pollCtx.Done():
@@ -547,8 +563,23 @@ func runServer(ctx context.Context) error {
 					// Network blip or broker-down: ignore and retry next tick.
 					// We don't re-register on transport errors because the next
 					// successful heartbeat will report the real state of our row.
+					// T14: but if we've been dark long enough that the broker
+					// has certainly swept us, attempt a rebind anyway so we
+					// don't sit dead forever waiting for a heartbeat that
+					// won't come.
+					consecutiveFailures++
+					if time.Duration(consecutiveFailures)*heartbeatInterval >= staleCutoff {
+						if rbErr := rebindToBroker(); rbErr == nil {
+							logMCP("Proactive rebind after %d failed heartbeats (~%s of darkness)",
+								consecutiveFailures, time.Duration(consecutiveFailures)*heartbeatInterval)
+						} else {
+							logMCP("Proactive rebind failed: %v (will retry after next cutoff window)", rbErr)
+						}
+						consecutiveFailures = 0
+					}
 					continue
 				}
+				consecutiveFailures = 0
 				if !resp.OK && resp.Reason == HeartbeatReasonUnknownSession {
 					if err := rebindToBroker(); err != nil {
 						logMCP("Re-register after eviction failed: %v (will retry next heartbeat)", err)
